@@ -19,6 +19,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
@@ -27,6 +28,8 @@ import android.util.Log;
 public abstract class Entity {
   static final class EntityMapping {
     private static final String TAG = "INTERNAL<EntityMapping>";
+    private static final Pattern MATCH_DOTDOLLAR = Pattern.compile("[\\.\\$]");
+    
     private Class<? extends Entity> mMappedClass;
     String mTableName;
     private Field mPrimaryKey;
@@ -45,9 +48,7 @@ public abstract class Entity {
       if (table != null) {
         mapping.mTableName = table.name();
       } else {
-        // TODO is regex an efficient way to do this??
-        // Does it matter? model creation is a one-time-per-class thing...
-        mapping.mTableName = clz.getName().replaceAll("[\\.\\$]", "");
+        mapping.mTableName = MATCH_DOTDOLLAR.matcher(clz.getName()).replaceAll("");
       }
 
       ArrayList<String> seenFields = new ArrayList<String>();
