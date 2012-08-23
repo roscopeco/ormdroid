@@ -463,4 +463,18 @@ public abstract class Entity {
       db.close();
     }
   }
+  
+  @Override
+  public boolean equals(Object other) {
+    // TODO indirectly using reflection here (via getPrimaryKeyValue).
+    return other != null && 
+           other.getClass().equals(getClass()) && 
+           ((Entity) other).getPrimaryKeyValue().equals(getPrimaryKeyValue());    
+  }
+
+  @Override
+  public int hashCode() {
+    // TODO this uses reflection. Also, could act wierd if non-int primary keys... 
+    return 31 * getClass().hashCode() + getPrimaryKeyValue().hashCode();
+  }
 }
