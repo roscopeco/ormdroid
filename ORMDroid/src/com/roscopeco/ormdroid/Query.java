@@ -58,12 +58,12 @@ public class Query<T extends Entity> {
   }
   
   public Query<T> gt(Object value) {
-    mSb.append("=").append(TypeMapper.encodeValue(null, value));
+    mSb.append(">").append(TypeMapper.encodeValue(null, value));
     return this;
   }
   
   public Query<T> lt(Object value) {
-    mSb.append("=").append(TypeMapper.encodeValue(null, value));
+    mSb.append("<").append(TypeMapper.encodeValue(null, value));
     return this;
   }
   
@@ -78,15 +78,10 @@ public class Query<T extends Entity> {
   }
   
   public Query<T> or() {
-    mSb.append(" AND ");
+    mSb.append(" OR ");
     return this;
   }
  
-  public Query<T> not() {
-    mSb.append(" AND ");
-    return this;
-  }
-  
   public String toString() {
     return mSb.toString();
   }
@@ -110,7 +105,7 @@ public class Query<T extends Entity> {
    */
   public T execute(SQLiteDatabase db) {
     EntityMapping map = Entity.getEntityMappingEnsureSchema(db, mClass);
-    String sql = mSb.toString();
+    String sql = mSb.toString() + " LIMIT 1";
     Log.v(TAG, sql);
     Cursor c = db.rawQuery(mSb.toString(), null);
     if (c.moveToFirst()) {
