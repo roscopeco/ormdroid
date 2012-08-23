@@ -331,6 +331,15 @@ public abstract class Entity {
 
       return list;
     }
+    
+    void delete(SQLiteDatabase db, Entity o) {
+      String sql = "DELETE FROM " + mTableName + " WHERE " + 
+                   mPrimaryKeyColumnName + "=" + getPrimaryKeyValue(o);
+
+      Log.v(getClass().getSimpleName(), sql);
+
+      db.execSQL(sql);
+    }
 
   } // end of EntityMapping
 
@@ -427,5 +436,29 @@ public abstract class Entity {
 
     db.close();
     return result;
+  }
+  
+  public void delete(SQLiteDatabase db) {
+    EntityMapping mapping = getEntityMappingEnsureSchema(db);
+
+    if (!mTransient) {
+      mapping.delete(db, this);
+    }
+  }
+  
+  public void delete() {
+    if (!mTransient) {
+      SQLiteDatabase db = ORMDroidApplication.getDefaultDatabase();
+      db.beginTransaction();
+  
+      try {
+        delete(db);
+        db.setTransactionSuccessful();
+      } finally {
+        db.endTransaction();
+      }
+  
+      db.close();
+    }
   }
 }
