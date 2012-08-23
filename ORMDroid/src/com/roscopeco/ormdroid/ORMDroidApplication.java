@@ -74,7 +74,8 @@ public class ORMDroidApplication extends Application {
       throw new IllegalStateException("ORMDroidApplication already initialized!");
     }
     singleton = this;
-    initInstance(this, getApplicationContext());
+    mContext = getApplicationContext();
+    //initInstance(this, getApplicationContext());
   }
   
   private void initDatabaseConfig() {
