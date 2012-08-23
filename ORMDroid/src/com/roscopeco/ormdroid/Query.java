@@ -138,6 +138,6 @@ public class Query<T extends Entity> {
   public List<T> executeMulti(SQLiteDatabase db) {
     String sql = mSb.toString();
     Log.v(TAG, sql);
-    return Entity.getEntityMapping(mClass).loadAll(db, db.rawQuery(mSb.toString(), null));
+    return Entity.getEntityMappingEnsureSchema(db, mClass).loadAll(db, db.rawQuery(mSb.toString(), null));
   }
 }
