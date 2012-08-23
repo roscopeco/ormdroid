@@ -177,10 +177,12 @@ public abstract class Entity {
       for (int i = 0; i < len; i++) {
         Field f = fields.get(i);
         if (!isPrimaryKey(f)) {
-          if (i > 0) {
+          b.append(names.get(i));
+          
+          if (i < len-1) {
             b.append(",");
           }
-          b.append(names.get(i));
+
         }
       }
 
@@ -205,12 +207,12 @@ public abstract class Entity {
                     + fields.get(i).getName() + "; Inserting NULL");
             val = null;
           }
-          if (i > 0) {
-            b.append(",");
-          }
-
+          
           b.append(val == null ? "null" : processValue(db, val));
 
+          if (i < len-1) {
+            b.append(",");
+          }
         }
       }
 
