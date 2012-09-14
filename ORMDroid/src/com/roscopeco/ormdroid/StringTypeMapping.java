@@ -23,15 +23,11 @@ import android.database.sqlite.SQLiteDatabase;
  * <p>Simple {@link TypeMapping} that encodes it's values via the 
  * {@link java.lang.Object#toString()} method.</p>
  * 
- * <p>Because of the way SQLite handles types, this can be
- * used for both numeric and string types.</p>
- * 
  * <p>This is the default mapping, used when no custom mapping
  * is supplied for a given type. As a default, it will map to
  * the <code>VARCHAR</code> data type.</p>
  * 
  * @see TypeMapper#setDefaultMapping(TypeMapping)
- * @author rosco
  */
 public class StringTypeMapping implements TypeMapping {
   private Class<?> mJavaType; 

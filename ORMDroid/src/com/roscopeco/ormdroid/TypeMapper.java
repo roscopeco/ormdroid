@@ -18,11 +18,26 @@ package com.roscopeco.ormdroid;
 import android.database.sqlite.SQLiteDatabase;
 
 /**
- * Top-level class in the <code>types</code> package. Most interaction
- * with the type mapping system will be done through the static methods
- * on this class.
+ * <p>Supports mappings between Java types and their SQL representations.</p>
  * 
- * @author rosco
+ * <p>By default, ORMDroid provides a mapping for all primitive types
+ * and Entity classes. All other types are mapped by the <em>default 
+ * mapping</em>, which simply stores their <code>toString</code> results
+ * in a <code>VARCHAR</code> column.</p>
+ * 
+ * <p>Custom types may be mapped by registering an instance of 
+ * {@link TypeMapping} via the {@link #mapType(TypeMapping) mapType} method.
+ * The default mapping can also be overriden using the
+ * {@link #setDefaultMapping(TypeMapping) setDefaultMapping} method.</p>
+ * 
+ * <p>Mappings are made based on assignability. When searching for a
+ * mapping for a given type, this class will return the most recently 
+ * added mapping with a type that is assignable from the type being
+ * searched for.</p>
+ * 
+ * <p>Any custom mappings should be registered before any database operations
+ * are performed. If mappings are changed when schemas already exist in
+ * the database, errors are very likely to result.</p>
  */
 public final class TypeMapper {
   private static final MappingList TYPEMAPS = new MappingList();
@@ -32,6 +47,12 @@ public final class TypeMapper {
     return getMapping(type).sqlType(type);
   }
   
+  /**
+   * Obtain the configured mapping the the specified Java type.
+   * 
+   * @param type the Java type. 
+   * @return the configured mapping.
+   */
   public static TypeMapping getMapping(Class<?> type) {
     TypeMapping r = TYPEMAPS.findMapping(type);
     if (r != null) {
@@ -46,17 +67,33 @@ public final class TypeMapper {
     }
   }
   
+  /**
+   * Shortcut to the {@link TypeMapping#encodeValue(SQLiteDatabase, Object)}
+   * method for the given value.
+   * 
+   * @param db The {@link SQLiteDatabase} instance to use. 
+   * @param value The value to encode.
+   * @return The SQL representation of the value.
+   */
   public static String encodeValue(SQLiteDatabase db, Object value) {
     return getMapping(value.getClass()).encodeValue(db, value);
   }
   
   /**
-   * Add the specified mapping to the mapping list.
+   * Add the specified mapping to the mapping list. New items
+   * are added at the front of the list, allowing remapping
+   * of already-mapped types.
    */
   public static void mapType(TypeMapping mapping) {
     TYPEMAPS.addMapping(mapping);
   }
   
+  /**
+   * Override the default mapping. This is used when no mapping
+   * is configured for a given type.
+   * 
+   * @param mapping The {@link TypeMapping} to use by default.
+   */
   public static void setDefaultMapping(TypeMapping mapping) {
     mDefaultMapping = mapping;
   }

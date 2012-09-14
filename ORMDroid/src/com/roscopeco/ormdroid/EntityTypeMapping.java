@@ -27,8 +27,6 @@ import com.roscopeco.ormdroid.Entity.EntityMapping;
  * {@link Entity#save()}. When called for query creation, will throw
  * an exception if the object is transient. Encodes value as an 
  * INTEGER with the value being the model's primary key.
- * 
- * @author rosco
  */
 public class EntityTypeMapping implements TypeMapping {
   private static final String TAG = "EntityTypeMapping";

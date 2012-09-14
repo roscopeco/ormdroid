@@ -24,22 +24,36 @@ import android.util.Log;
 import com.roscopeco.ormdroid.Entity.EntityMapping;
 
 /**
- * Represents and assists with building a database query that 
+ * <p>Represents and assists with building a database query that 
  * will load an object (or graph). Mostly this class will be
- * used indirectly via the {@link Entity#query} method.
+ * used indirectly via the {@link Entity#query} method.</p>
  * 
- * @author rosco
+ * <p>Example usage:</p>
+ * 
+ * <ul>
+ *  <li>MyModel m = {@link Entity#query Entity.query}(MyModel).{@link #whereId whereId}().{@link #eq eq}(1).{@link #execute execute}()</li>
+ *  <li>MyModel m = {@link Entity#query Entity.query}(MyModel).{@link #where where}("name").{@link #eq eq}("Joe").{@link #execute execute}()</li>
+ *  <li>List<MyModel> l = {@link Entity#query Entity.query}(MyModel).{@link #where where}("city").{@link #eq eq}("London").{@link #executeMulti() executeMulti}()</li>
+ *  <li>List<MyModel> l = {@link Entity#query Entity.query}(MyModel).{@link #executeMulti executeMulti}()</li>
+ * </ul>
  */
 public class Query<T extends Entity> {
   private static final String TAG = "Query";
   
-  // TODO maybe some validation, e.g. EQUALS called before WHERE etc...?
-  private StringBuilder mSb = new StringBuilder().append("SELECT * FROM ");
-  private Class<T> mClass;
   
-  public Query(Class<T> clz) {
-    mSb.append(Entity.getEntityMapping(clz).mTableName).append(" ");
-    mClass = clz;
+  // TODO maybe some validation, e.g. EQUALS called before WHERE etc...?
+  private final StringBuilder mSb = new StringBuilder().append("SELECT * FROM ");
+  private final Class<T> mClass;
+  private final EntityMapping mEntityMapping; 
+
+  public Query(Class<T> clz) {    
+    mEntityMapping = Entity.getEntityMapping(mClass = clz);
+    mSb.append(mEntityMapping.mTableName).append(" ");
+  }
+  
+  public Query<T> whereId(Object key) {
+    mSb.append("WHERE ").append(mEntityMapping.mPrimaryKeyColumnName);
+    return this;
   }
 
   public Query<T> where(String column) {

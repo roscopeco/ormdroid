@@ -22,6 +22,16 @@ import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
+/**
+ * <p>Provides static-initialization for the ORMDroid framework.
+ * The {@link #initialize(Context)} method must be called with
+ * a valid {@link Context} prior to using any framework methods
+ * that reference the default database.</p>
+ * 
+ * <p>Note that this class extends {@link android.app.Application},
+ * allowing you to set it as the Application class in your manifest
+ * to have this initialization handled automatically.</p>
+ */
 public class ORMDroidApplication extends Application {
   private static ORMDroidApplication singleton;  
   private Context mContext;
@@ -54,7 +64,12 @@ public class ORMDroidApplication extends Application {
       initInstance(singleton = new ORMDroidApplication(), ctx);
     }
   }
-  
+
+  /**
+   * Obtain the singleton instance of this class.
+   * 
+   * @return the singleton instance.
+   */
   public static ORMDroidApplication getSingleton() {
     if (!isInitialized()) {
       Log.e("ORMDroidApplication", "ORMDroid is not initialized");
@@ -64,6 +79,13 @@ public class ORMDroidApplication extends Application {
     return singleton;
   }
   
+  /**
+   * Obtain the default database used by the framework. This
+   * is a convenience that calls {@link #getDatabase()} on the
+   * singleton instance.
+   * 
+   * @return the default database.
+   */
   public static SQLiteDatabase getDefaultDatabase() {
     return getSingleton().getDatabase();    
   }
@@ -87,6 +109,11 @@ public class ORMDroidApplication extends Application {
     }
   }
   
+  /**
+   * Get the database name used by the framework in this application.
+   * 
+   * @return The database name.
+   */
   public String getDatabaseName() {
     if (mDBName == null) {
       initDatabaseConfig();
@@ -94,6 +121,11 @@ public class ORMDroidApplication extends Application {
     return mDBName;
   }
   
+  /**
+   * Get the database used by the framework in this application.
+   * 
+   * @return The database.
+   */
   public SQLiteDatabase getDatabase() {
     return openOrCreateDatabase(getDatabaseName(), 0, null);
   }

@@ -25,6 +25,125 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
+/**
+ * <p>Base class for persistent entities. The only hard requirements
+ * for model classes are that they subclass this class, and that
+ * they provide a (currently integral) primary key (see below).</p>
+ * 
+ * <p><code>Entity</code> is the primary class in ORMDroid, and is
+ * where most interaction with the API will take place. A model class
+ * will subclass this class, and will inherit its save() and delete()
+ * methods from it. The simplest possible model class would be:</p>
+ * 
+ * <p><pre><code>
+ * public class Person extends Entity {
+ *   public int id;
+ * }
+ * </pre></code></p>
+ * 
+ * <p>This is obviously useless, as it holds no data other than the
+ * (required) primary key. In order to actually store other data,
+ * you would add further public fields. Entities may also define 
+ * any methods you wish - these are never called by the framework</p>
+ * 
+ * <h3>Table & column names</h3>
+ * 
+ * <p>By default, the framework creates table names based on the 
+ * fully-qualified name of the entity class. You can change this
+ * behaviour by applying the {@link Table} annotation to the class,
+ * e.g:</p>
+ * 
+ * <p><pre><code>
+ * {@literal @}Table(name = "people")
+ * public class Person extends Entity {
+ *   // ...
+ * }
+ * </pre></code></p>
+ * 
+ * <p>Similarly, any column can be explicitly named using the
+ * {@link Column} annotation:</p>
+ * 
+ * <p><pre><code>
+ *   {@literal @}Column(name = "person_name")
+ *   public String name;
+ * </pre></code></p>
+ *  
+ * <h3>Primary key field</h3>
+ * 
+ * <p>In the example above, the framework automatically selects the 
+ * primary key field based on it's name. Currently, the framework
+ * will use the first field it finds named 'id' or '_id', and will
+ * map these fields to database column '_id' in any case, unless
+ * the field is explicitly named (see above).</p>
+ * 
+ * <p>It is possible to explicitly select the primary key column
+ * using the {@link Column} annotation:
+ * 
+ * <p><pre><code>
+ *   {@literal @}Column(primaryKey = true)
+ *   public int myPrimaryKey;
+ * </pre></code></p>
+ * 
+ * <p>It should be noted that, although you can use any data type
+ * for primary key fields, parts of the framework currently expect
+ * primary keys to be integers, and will behave in an indeterminite
+ * manner if other types are used. This limitation primarily affects
+ * the {@link Query} class, and the {@link #equals(Object)} and 
+ * {@link #hashCode()} implementations defined in this class, and
+ * will be removed in a future version.</p>
+ * 
+ * <h3>Relationships</h3>
+ * 
+ * <p>The framework currently provides built-in support for 
+ * one-to-one relationships - simply adding a field of an 
+ * <code>Entity</code>-subclass type will cause that field to
+ * be persisted when the containing object is persisted.</p>
+ * 
+ * <p>Many relationships are not currently natively supported,
+ * but can easily be implemented using helper methods on your
+ * model class. For example (taken from the ORMSample app):</p>
+ * 
+ * <p><pre><code>
+ * public List<Person> people() {
+ *   return query(Person.class).where("department").eq(id).executeMulti();
+ * }
+ * </pre></code></p>
+ * 
+ * <p>More support for such relationships (including entity type mappings
+ * for {@link java.util.List} and {@link java.util.Map}) will be added in a 
+ * future version.</p>
+ * 
+ * <p>If you have a bidirectional relationship, you must annotate one side
+ * of that relationship with the 
+ * <code>{@literal @}{@link Column}(inverse = true)</code> annotation 
+ * to prevent infinite loops when persisting your data. This will prevent
+ * the inverse field from being persisted when it's model is stored.</p>
+ * 
+ * <h3>Model lifecycle</h3>
+ * 
+ * <p>The typical lifecycle of a model is shown below:</p>
+ * 
+ * <p><pre><code>
+ * MyModel m = new MyModel();
+ *   // ... or ... 
+ * MyModel m = Entity.query(MyModel).whereId().eq(1).execute();
+ * 
+ *   // ... do some work ...
+ *   
+ * MyModel.save();
+ *   // ... or ...
+ * MyModel.delete();
+ * </pre></code></p>
+ * 
+ * <h3>{@link #equals} and {@link #hashCode}</h3>
+ * 
+ * <p>The default implementation of equals and hashCode provided
+ * by this class define equality in terms of primary key, and 
+ * utilise reflective field access. You may of course override 
+ * these if you wish to change their behaviour, or for performance
+ * reasons (e.g. to directly compare primary key fields rather than
+ * using reflection).</p>
+ */
 public abstract class Entity {
   static final class EntityMapping {
     private static final String TAG = "INTERNAL<EntityMapping>";
@@ -370,6 +489,16 @@ public abstract class Entity {
     return map;
   }
 
+  /**
+   * <p>Create a new {@link Query} that will query against the
+   * table mapped to the specified class.</p>
+   * 
+   * <p>See the {@link Query} documentation for examples of
+   * usage.</p>
+   * 
+   * @param clz The class to query.
+   * @return A new <code>Query</code>.
+   */
   public static <T extends Entity> Query<T> query(Class<T> clz) {
     return new Query<T>(clz);
   }
@@ -381,6 +510,16 @@ public abstract class Entity {
     mTransient = true;
   }
 
+  /**
+   * <p>Determine whether this instance is backed by the database.</p>
+   * 
+   * <p><strong>Note</strong> that a <code>false</code> result
+   * from this method does <strong>not</strong> indicate that
+   * the data in the database is up to date with respect to the
+   * object's fields.</p>
+   * 
+   * @return <code>false</code> if this object is stored in the database.
+   */
   public boolean isTransient() {
     return mTransient;
   }
@@ -404,10 +543,24 @@ public abstract class Entity {
     return map;
   }
 
+  /**
+   * <p>Get the value of the primary key field for this object.</p>
+   * 
+   * <p>Note that this currently uses reflection.</p>
+   * 
+   * @return The primary key value.
+   */
   public Object getPrimaryKeyValue() {
     return getEntityMapping().getPrimaryKeyValue(this);
   }
 
+  /**
+   * Insert or update this object using the specified database
+   * connection.
+   * 
+   * @param db The database connection to use.
+   * @return The primary key of the inserted item (if object was transient), or -1 if an update was performed.
+   */
   public int save(SQLiteDatabase db) {
     EntityMapping mapping = getEntityMappingEnsureSchema(db);
 
@@ -417,12 +570,18 @@ public abstract class Entity {
       result = mapping.insert(db, this);
       mTransient = false;
     } else {
-      mapping.update(db, this);
+      mapping.update(db, this);      
     }
 
     return result;
   }
 
+  /**
+   * Insert or update this object using the default database
+   * connection.
+   * 
+   * @return The primary key of the inserted item (if object was transient), or -1 if an update was performed.
+   */
   public int save() {
     SQLiteDatabase db = ORMDroidApplication.getDefaultDatabase();
     db.beginTransaction();
@@ -440,6 +599,11 @@ public abstract class Entity {
     return result;
   }
   
+  /**
+   * Delete this object using the specified database connection.
+   * 
+   * @param db The database connection to use.
+   */
   public void delete(SQLiteDatabase db) {
     EntityMapping mapping = getEntityMappingEnsureSchema(db);
 
@@ -448,6 +612,9 @@ public abstract class Entity {
     }
   }
   
+  /**
+   * Delete this object using the default database connection.
+   */
   public void delete() {
     if (!mTransient) {
       SQLiteDatabase db = ORMDroidApplication.getDefaultDatabase();
@@ -464,6 +631,9 @@ public abstract class Entity {
     }
   }
   
+  /**
+   * Defines equality in terms of primary key values. 
+   */
   @Override
   public boolean equals(Object other) {
     // TODO indirectly using reflection here (via getPrimaryKeyValue).
@@ -472,6 +642,9 @@ public abstract class Entity {
            ((Entity) other).getPrimaryKeyValue().equals(getPrimaryKeyValue());    
   }
 
+  /**
+   * Defines the hash code in terms of the primary key value. 
+   */
   @Override
   public int hashCode() {
     // TODO this uses reflection. Also, could act wierd if non-int primary keys... 
