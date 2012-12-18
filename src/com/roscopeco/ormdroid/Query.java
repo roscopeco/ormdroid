@@ -40,64 +40,154 @@ import com.roscopeco.ormdroid.Entity.EntityMapping;
 public class Query<T extends Entity> {
   private static final String TAG = "Query";
   
+  static interface SQLExpression {
+    String generate();
+  }
   
-  // TODO maybe some validation, e.g. EQUALS called before WHERE etc...?
-  private final StringBuilder mSb = new StringBuilder().append("SELECT * FROM ");
+  static class BinExpr implements SQLExpression {
+    static final String EQ = " = ";
+    static final String NE = " != ";
+    static final String LT = " < ";
+    static final String GT = " > ";
+    static final String LEQ = " <= ";
+    static final String GEQ = " >= ";
+    
+    final String op;
+    final String column;
+    final Object value;
+    
+    public BinExpr(String op, String column, Object value) {
+      this.op = op;
+      this.column = column;
+      this.value = value;
+    }
+
+    public String generate() {
+      return column + op + value;
+    }
+  }
+  
+  static class LogicalExpr implements SQLExpression {
+    final String op;
+    final SQLExpression lhs, rhs;
+    
+    public LogicalExpr(String op, SQLExpression lhs, SQLExpression rhs) {
+      this.op = op;
+      this.lhs = lhs;
+      this.rhs = rhs;
+    }
+
+    public String generate() {
+      StringBuilder sb = new StringBuilder();
+      sb.append("(").append(lhs.generate()).append(" ").append(op).append(" ").append(rhs.generate()).append(")");      
+      return sb.toString();
+    }
+  }
+
+  private static StringBuilder joinStrings(StringBuilder sb, String... strings) {
+    if (strings.length < 1) {
+      return sb.append("*");      
+    } else {
+      sb.append(strings[0]);
+      for (int i = 1; i < strings.length; i++) {
+        sb.append(", ").append(strings[i]);        
+      }
+      return sb;
+    }
+  }
+  
   private final Class<T> mClass;
   private final EntityMapping mEntityMapping; 
-
+  private String sqlCache, sqlCache1;
+  private SQLExpression whereExpr;
+  private String[] orderByColumns;
+  private int limit = -1;
+  
   public Query(Class<T> clz) {    
     mEntityMapping = Entity.getEntityMapping(mClass = clz);
-    mSb.append(mEntityMapping.mTableName).append(" ");
   }
   
-  public Query<T> whereId(Object key) {
-    mSb.append("WHERE ").append(mEntityMapping.mPrimaryKeyColumnName);
+  public static <T extends Entity> Query<T> query(Class<T> clz) {
+    return new Query<T>(clz);
+  }
+  
+  public static SQLExpression eql(String column, Object value) {
+    return new BinExpr(BinExpr.EQ, column, TypeMapper.encodeValue(null, value));    
+  }
+  
+  public static SQLExpression neq(String column, Object value) {
+    return new BinExpr(BinExpr.NE, column, TypeMapper.encodeValue(null, value));    
+  }
+  
+  public static SQLExpression lt(String column, Object value) {
+    return new BinExpr(BinExpr.LT, column, TypeMapper.encodeValue(null, value));    
+  }
+  
+  public static SQLExpression gt(String column, Object value) {
+    return new BinExpr(BinExpr.GT, column, TypeMapper.encodeValue(null, value));    
+  }
+  
+  public static SQLExpression leq(String column, Object value) {
+    return new BinExpr(BinExpr.LEQ, column, TypeMapper.encodeValue(null, value));    
+  }
+
+  public static SQLExpression geq(String column, Object value) {
+    return new BinExpr(BinExpr.GEQ, column, TypeMapper.encodeValue(null, value));    
+  }
+  
+  public static SQLExpression and(SQLExpression lhs, SQLExpression rhs) {
+    return new LogicalExpr("AND", lhs, rhs);
+  }
+  
+  public static SQLExpression or(SQLExpression lhs, SQLExpression rhs) {
+    return new LogicalExpr("OR", lhs, rhs);
+  }
+  
+  public Query<T> where(SQLExpression expr) {
+    sqlCache = null;
+    sqlCache1 = null;
+    whereExpr = expr;
+    return this;
+  }
+  
+  public Query<T> orderBy(String... columns) {
+    sqlCache = null;
+    sqlCache1 = null;
+    orderByColumns = columns;
+    return this;
+  }
+  
+  public Query<T> limit(int limit) {
+    sqlCache = null;
+    sqlCache1 = null;
+    this.limit = limit;
     return this;
   }
 
-  public Query<T> where(String column) {
-    mSb.append("WHERE ").append(column);
-    return this;
-  }
-  
-  public Query<T> eq(Object value) {
-    mSb.append("=").append(TypeMapper.encodeValue(null, value));
-    return this;
-  }
-  
-  public Query<T> ne(Object value) {
-    mSb.append("!=").append(TypeMapper.encodeValue(null, value));
-    return this;
-  }
-  
-  public Query<T> gt(Object value) {
-    mSb.append(">").append(TypeMapper.encodeValue(null, value));
-    return this;
-  }
-  
-  public Query<T> lt(Object value) {
-    mSb.append("<").append(TypeMapper.encodeValue(null, value));
-    return this;
-  }
-  
-  public Query<T> is(String operator, Object value) {
-    mSb.append(operator).append(TypeMapper.encodeValue(null, value));
-    return this;
-  }
-  
-  public Query<T> and() {
-    mSb.append(" AND ");
-    return this;
-  }
-  
-  public Query<T> or() {
-    mSb.append(" OR ");
-    return this;
+  private String generate(int limit) {
+    StringBuilder sb = new StringBuilder().append("SELECT * FROM ").append(mEntityMapping.mTableName);
+    if (whereExpr != null) {
+      sb.append(" WHERE ").append(whereExpr.generate());
+    }
+    if (orderByColumns != null && orderByColumns.length > 0) {
+      joinStrings(sb.append(" ORDER BY "), orderByColumns);
+    }
+    if (limit > -1) {
+      sb.append(" LIMIT ").append(limit);
+    }
+    return sb.toString();
   }
  
+  public String toSql() {
+    if (sqlCache == null) {
+      return sqlCache = generate(this.limit);
+    } else {
+      return sqlCache;
+    }
+  }
+  
   public String toString() {
-    return mSb.toString();
+    return toSql();
   }
   
   /** 
@@ -119,9 +209,13 @@ public class Query<T extends Entity> {
    */
   public T execute(SQLiteDatabase db) {
     EntityMapping map = Entity.getEntityMappingEnsureSchema(db, mClass);
-    String sql = mSb.toString() + " LIMIT 1";
+    
+    if (sqlCache1 == null) {
+      sqlCache1 = generate(1);
+    }
+    String sql = sqlCache1;
     Log.v(TAG, sql);
-    Cursor c = db.rawQuery(mSb.toString(), null);
+    Cursor c = db.rawQuery(sql, null);
     if (c.moveToFirst()) {
       return map.<T>load(db, c);
     } else {
@@ -145,8 +239,8 @@ public class Query<T extends Entity> {
    * Execute the query on the specified database, returning all results.
    */
   public List<T> executeMulti(SQLiteDatabase db) {
-    String sql = mSb.toString();
+    String sql = toSql();
     Log.v(TAG, sql);
-    return Entity.getEntityMappingEnsureSchema(db, mClass).loadAll(db, db.rawQuery(mSb.toString(), null));
+    return Entity.getEntityMappingEnsureSchema(db, mClass).loadAll(db, db.rawQuery(sql, null));
   }
 }
