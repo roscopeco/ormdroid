@@ -16,6 +16,9 @@
 package com.roscopeco.ormdroid;
 
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
+
+import java.util.Date;
 
 /**
  * <p>Supports mappings between Java types and their SQL representations.</p>
@@ -119,10 +122,15 @@ public final class TypeMapper {
     mapType(new NumericTypeMapping(Integer.class, "INTEGER"));
     mapType(new NumericTypeMapping(int.class, "INTEGER"));
 
+
     //    String is mapped, even though it would be handled by the default, 
     //    so we don't have to traverse all the mappings before we decide
     //    on the default handler.
     mapType(new StringTypeMapping(String.class, "VARCHAR"));
+
+	//    non primitive type mappings
+	mapType(new DateTypeMapping(Date.class,"BIGINT"));
+	mapType(new UriTypeMapping(Uri.class,"VARCHAR"));
     
   }
   
