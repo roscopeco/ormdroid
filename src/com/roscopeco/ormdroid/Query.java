@@ -31,10 +31,11 @@ import com.roscopeco.ormdroid.Entity.EntityMapping;
  * <p>Example usage:</p>
  * 
  * <ul>
- *  <li>MyModel m = {@link Entity#query Entity.query}(MyModel).{@link #whereId whereId}().{@link #eq eq}(1).{@link #execute execute}()</li>
- *  <li>MyModel m = {@link Entity#query Entity.query}(MyModel).{@link #where where}("name").{@link #eq eq}("Joe").{@link #execute execute}()</li>
- *  <li>List<MyModel> l = {@link Entity#query Entity.query}(MyModel).{@link #where where}("city").{@link #eq eq}("London").{@link #executeMulti() executeMulti}()</li>
- *  <li>List<MyModel> l = {@link Entity#query Entity.query}(MyModel).{@link #executeMulti executeMulti}()</li>
+ *  <li>MyModel m = {@link Entity#query Entity.query}(MyModel.class).{@link #where where}({@link #eql eql}("id", 1)).{@link #execute execute}()</li>
+ *  <li>MyModel m = {@link Entity#query Entity.query}(MyModel.class).{@link #where where}({@link #eql eql}("name", "Joe")).{@link #execute execute}()</li>
+ *  <li>List<MyModel> l = {@link Entity#query Entity.query}(MyModel.class).{@link #where where}({@link #eql eql}("city", "London")).{@link #executeMulti() executeMulti}()</li>
+ *  <li>List<MyModel> l = {@link Entity#query Entity.query}(MyModel.class).{@link #executeMulti executeMulti}()</li>
+ *  <li>MyModel m = {@link Entity#query Entity.query}(MyModel.class).{@link #where where}({@link #and and}({@link #eql eql}("name", "Joe"), {@link #eql eql}("city", "London"))).{@link #execute execute}()</li>
  * </ul>
  */
 public class Query<T extends Entity> {
@@ -147,7 +148,7 @@ public class Query<T extends Entity> {
     sqlCache = null;
     sqlCache1 = null;
     whereExpr = expr;
-    return this;
+    return this;    
   }
   
   public Query<T> orderBy(String... columns) {

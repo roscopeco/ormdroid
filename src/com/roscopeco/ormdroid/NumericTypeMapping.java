@@ -42,12 +42,21 @@ public class NumericTypeMapping implements TypeMapping {
   }
 
   public String encodeValue(SQLiteDatabase db, Object value) {
-    return value.toString();
+    if (value instanceof Boolean) {
+      return (Boolean)value ? "1" : "0";
+    } else {      
+      return value.toString();
+    }
   }
 
   // TODO this will cause exceptions when trying to unbox into smaller types...
   //        or worse, silently lose data... Look into this!
   public Object decodeValue(SQLiteDatabase db, Class<?> expectedType, Cursor c, int columnIndex) {
-    return c.getInt(columnIndex);
+    if (expectedType.equals(Boolean.class) || expectedType.equals(boolean.class)) {
+      int i = c.getInt(columnIndex);
+      return (i == 0) ? false : true;
+    } else {
+      return c.getInt(columnIndex);
+    }
   }
 }
