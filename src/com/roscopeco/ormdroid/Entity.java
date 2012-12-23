@@ -16,6 +16,7 @@
 package com.roscopeco.ormdroid;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -178,10 +179,16 @@ public abstract class Entity {
         //
         // We might as well also ignore it here if it's inverse, since we'll
         // never want to access it via the mapping.
+        //
+        // Also, ignore statics/finals (bug #4) 
         Column colAnn = f.getAnnotation(Column.class);
         boolean inverse = colAnn != null && colAnn.inverse();
 
-        if (!seenFields.contains(f.getName()) && !inverse) {
+        int modifiers = f.getModifiers();
+        if (!Modifier.isStatic(modifiers) &&
+            !Modifier.isFinal(modifiers) &&
+            !seenFields.contains(f.getName()) && 
+            !inverse) {
           Column col = f.getAnnotation(Column.class);
           String name;
 
@@ -503,7 +510,7 @@ public abstract class Entity {
     return new Query<T>(clz);
   }
 
-  private boolean mTransient;
+  boolean mTransient;
   private EntityMapping mMappingCache;
 
   protected Entity() {
