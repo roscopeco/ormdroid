@@ -377,10 +377,19 @@ public abstract class Entity {
 
       return b.toString();
     }
+    
+    /* issue #6 */
+    private String stripTrailingComma(String string) {
+      // check for last comma
+      if (string.endsWith(",")) {
+        return string.substring(0, string.length() - 1);
+      }
+      return string;
+    }
 
     int insert(SQLiteDatabase db, Entity o) {
-      String sql = "INSERT INTO " + mTableName + " (" + getColNames()
-          + ") VALUES (" + getFieldValues(db, o) + ")";
+      String sql = "INSERT INTO " + mTableName + " (" + stripTrailingComma(getColNames())
+          + ") VALUES (" + stripTrailingComma(getFieldValues(db, o)) + ")";
 
       Log.v(getClass().getSimpleName(), sql);
 
@@ -456,6 +465,9 @@ public abstract class Entity {
           list.add(this.<T> load(db, c));
         } while (c.moveToNext());
       }
+      
+      /* issue #6 */
+      c.close();      
 
       return list;
     }
