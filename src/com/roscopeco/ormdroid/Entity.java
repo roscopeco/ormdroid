@@ -172,7 +172,7 @@ public abstract class Entity {
       }
 
       ArrayList<String> seenFields = new ArrayList<String>();
-      for (Field f : clz.getFields()) {
+      for (Field f : clz.getDeclaredFields()) {
         // Blithely ignore this field if we've already seen one with same name -
         // Java field hiding allows this to happen and if it does, without this
         // we'd be adding the same column name twice.
@@ -181,6 +181,7 @@ public abstract class Entity {
         // never want to access it via the mapping.
         //
         // Also, ignore statics/finals (bug #4) 
+    	f.setAccessible(true);
         Column colAnn = f.getAnnotation(Column.class);
         boolean inverse = colAnn != null && colAnn.inverse();
 
