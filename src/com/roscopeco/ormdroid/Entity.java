@@ -189,7 +189,7 @@ public abstract class Entity {
         if (!Modifier.isStatic(modifiers) &&
             !Modifier.isFinal(modifiers) &&
             !seenFields.contains(f.getName()) && 
-            !inverse) {
+            !inverse && !colAnn.ignore()) {
           Column col = f.getAnnotation(Column.class);
           String name;
 
