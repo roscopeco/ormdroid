@@ -252,6 +252,17 @@ public class Query<T extends Entity> {
   }
   
   /**
+   * Executes the query against the database but returns a high performance
+   * cursor instead of the complete in-memory list of objects
+   */
+  public Cursor executeMultiForCursor() {
+	  SQLiteDatabase db = ORMDroidApplication.getDefaultDatabase();
+	  String sql = toSql();
+	  Log.v(TAG, sql);
+	  return db.rawQuery(sql, null);
+  }
+  
+  /**
    * Execute the query on the specified database, returning all results.
    */
   public List<T> executeMulti(SQLiteDatabase db) {
