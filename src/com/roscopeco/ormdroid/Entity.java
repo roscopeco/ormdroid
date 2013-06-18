@@ -245,7 +245,11 @@ public abstract class Entity {
         b.append(" ");
         b.append(TypeMapper.sqlType(mFields.get(i).getType()));
         if (colName.equals(mPrimaryKeyColumnName)) {
-          b.append(" PRIMARY KEY AUTOINCREMENT");
+          b.append(" PRIMARY KEY");
+            Class<?> fieldClass = mFields.get(i).getClass();
+            if(fieldClass.equals(int.class) || fieldClass.equals(Integer.class)) {
+                b.append(" AUTOINCREMENT ");
+            }
         }
 
         if (i < len - 1) {
@@ -300,16 +304,20 @@ public abstract class Entity {
       ArrayList<String> names = mColumnNames;
       ArrayList<Field> fields = mFields;
       int len = names.size();
+      Class<?> pKeyClass = mPrimaryKey.getClass();
 
       for (int i = 0; i < len; i++) {
         Field f = fields.get(i);
         if (!isPrimaryKey(f)) {
           b.append(names.get(i));
-          
-          if (i < len-1) {
-            b.append(",");
-          }
+        } else {
+            if(!(pKeyClass.equals(int.class) || pKeyClass.equals(Integer.class))) {
+                b.append((names.get(i)));
+            }
+        }
 
+        if (i < len-1) {
+            b.append(",");
         }
       }
 
@@ -320,30 +328,39 @@ public abstract class Entity {
       StringBuilder b = new StringBuilder();
       ArrayList<Field> fields = mFields;
       int len = fields.size();
+      Class<?> pKeyClass = mPrimaryKey.getClass();
 
       for (int i = 0; i < len; i++) {
+        Object val;
         Field f = fields.get(i);
         if (!isPrimaryKey(f)) {
-          Object val;
-          try {
-            val = f.get(receiver);
-          } catch (IllegalAccessException e) {
-            // Should never happen...
-            Log.e(TAG,
-                "IllegalAccessException accessing field "
-                    + fields.get(i).getName() + "; Inserting NULL");
-            val = null;
-          }
-          
+          val = getFieldValue(f, receiver);
           b.append(val == null ? "null" : processValue(db, val));
+        } else {
+            if(!(pKeyClass.equals(int.class) || pKeyClass.equals(Integer.class))) {
+                val = getFieldValue(f, receiver);
+                b.append(val == null ? "null" : processValue(db, val));
+            }
+        }
 
-          if (i < len-1) {
+        if (i < len-1) {
             b.append(",");
-          }
         }
       }
 
       return b.toString();
+    }
+
+    private Object getFieldValue(Field f, Entity receiver) {
+        try {
+            return f.get(receiver);
+        } catch (IllegalAccessException e) {
+            // Should never happen...
+            Log.e(TAG,
+                    "IllegalAccessException accessing field "
+                            + f.getName() + "; Inserting NULL");
+            return null;
+        }
     }
 
     private String getSetFields(SQLiteDatabase db, Object receiver) {
@@ -396,15 +413,19 @@ public abstract class Entity {
 
       db.execSQL(sql);
 
-      Cursor c = db.rawQuery("select last_insert_rowid();", null);
-      if (c.moveToFirst()) {
-        Integer i = c.getInt(0);
-        setPrimaryKeyValue(o, i);
-        return i;
-      } else {
-        throw new ORMDroidException(
-            "Failed to get last inserted id after INSERT");
+      Class<?> pKeyClass = mPrimaryKey.getClass();
+      if(pKeyClass.equals(int.class) || pKeyClass.equals(Integer.class)) {
+          Cursor c = db.rawQuery("select last_insert_rowid();", null);
+          if (c.moveToFirst()) {
+            Integer i = c.getInt(0);
+            setPrimaryKeyValue(o, i);
+            return i;
+          } else {
+            throw new ORMDroidException(
+                "Failed to get last inserted id after INSERT");
+          }
       }
+      return -1;
     }
 
     void update(SQLiteDatabase db, Entity o) {
@@ -601,6 +622,8 @@ public abstract class Entity {
    * connection.
    * 
    * @return The primary key of the inserted item (if object was transient), or -1 if an update was performed.
+   * Unless the primary key is of non-integer type, in which case 0 will always be returned if the object is
+   * transient.
    */
   public int save() {
     SQLiteDatabase db = ORMDroidApplication.getDefaultDatabase();
