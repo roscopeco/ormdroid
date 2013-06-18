@@ -101,6 +101,7 @@ public class Query<T extends Entity> {
   private final EntityMapping mEntityMapping; 
   private String sqlCache, sqlCache1;
   private SQLExpression whereExpr;
+  private String customExpr;
   private String[] orderByColumns;
   private int limit = -1;
   
@@ -144,7 +145,16 @@ public class Query<T extends Entity> {
     return new LogicalExpr("OR", lhs, rhs);
   }
   
+  public Query<T> custom(String sql) {
+	sqlCache = null;
+    sqlCache1 = null;
+    whereExpr = null;
+    customExpr = sql;
+    return this;   
+  }
+   
   public Query<T> where(SQLExpression expr) {
+	customExpr = null;
     sqlCache = null;
     sqlCache1 = null;
     whereExpr = expr;
@@ -152,6 +162,7 @@ public class Query<T extends Entity> {
   }
   
   public Query<T> orderBy(String... columns) {
+	customExpr = null;
     sqlCache = null;
     sqlCache1 = null;
     orderByColumns = columns;
@@ -166,6 +177,10 @@ public class Query<T extends Entity> {
   }
 
   private String generate(int limit) {
+	if(customExpr != null) {
+		return customExpr;
+	}
+	  
     StringBuilder sb = new StringBuilder().append("SELECT * FROM ").append(mEntityMapping.mTableName);
     if (whereExpr != null) {
       sb.append(" WHERE ").append(whereExpr.generate());
@@ -234,6 +249,17 @@ public class Query<T extends Entity> {
     } finally {
       db.close();
     }
+  }
+  
+  /**
+   * Executes the query against the database but returns a high performance
+   * cursor instead of the complete in-memory list of objects
+   */
+  public Cursor executeMultiForCursor() {
+	  SQLiteDatabase db = ORMDroidApplication.getDefaultDatabase();
+	  String sql = toSql();
+	  Log.v(TAG, sql);
+	  return db.rawQuery(sql, null);
   }
   
   /**

@@ -31,4 +31,5 @@ public @interface Column {
   String name() default "";
   boolean primaryKey() default false;
   boolean inverse() default false;
+  boolean ignore() default false;
 }
