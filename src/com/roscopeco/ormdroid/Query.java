@@ -70,17 +70,27 @@ public class Query<T extends Entity> {
   
   static class LogicalExpr implements SQLExpression {
     final String op;
-    final SQLExpression lhs, rhs;
+    final SQLExpression[] operands;
     
-    public LogicalExpr(String op, SQLExpression lhs, SQLExpression rhs) {
+    public LogicalExpr(String op, SQLExpression... operands) {
       this.op = op;
-      this.lhs = lhs;
-      this.rhs = rhs;
+      if (operands.length < 2) {
+        throw new IllegalArgumentException("Cannot create logical expression with < 2 operands");
+      }
+      this.operands = operands;
     }
 
     public String generate() {
       StringBuilder sb = new StringBuilder();
-      sb.append("(").append(lhs.generate()).append(" ").append(op).append(" ").append(rhs.generate()).append(")");      
+      
+      sb.append("(");
+      
+      for (int i = 0; i < operands.length - 1; i++) {
+        sb.append(operands[i].generate()).append(" ").append(op).append(" ");      
+      }
+      
+      sb.append(operands[operands.length - 1].generate()).append(")");
+      
       return sb.toString();
     }
   }
@@ -136,18 +146,25 @@ public class Query<T extends Entity> {
     return new BinExpr(BinExpr.GEQ, column, TypeMapper.encodeValue(null, value));    
   }
   
-  public static SQLExpression and(SQLExpression lhs, SQLExpression rhs) {
-    return new LogicalExpr("AND", lhs, rhs);
+  public static SQLExpression and(SQLExpression... operands) {
+    return new LogicalExpr("AND", operands);
   }
   
-  public static SQLExpression or(SQLExpression lhs, SQLExpression rhs) {
-    return new LogicalExpr("OR", lhs, rhs);
+  public static SQLExpression or(SQLExpression... operands) {
+    return new LogicalExpr("OR", operands);
   }
   
   public Query<T> where(SQLExpression expr) {
     sqlCache = null;
     sqlCache1 = null;
     whereExpr = expr;
+    return this;    
+  }
+  
+  public Query<T> where(String sql) {
+    sqlCache = sql;
+    sqlCache1 = sql;
+    whereExpr = null;
     return this;    
   }
   
