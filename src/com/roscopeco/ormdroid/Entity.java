@@ -426,7 +426,8 @@ public abstract class Entity {
     }
 
     void update(SQLiteDatabase db, Entity o) {
-      String sql = "UPDATE " + mTableName + " SET " + getSetFields(db, o)
+      // stripTrailingComma: issue #9
+      String sql = "UPDATE " + mTableName + " SET " + stripTrailingComma(getSetFields(db, o))
           + " WHERE " + mPrimaryKeyColumnName + "=" + getPrimaryKeyValue(o);
 
       Log.v(getClass().getSimpleName(), sql);
