@@ -93,6 +93,17 @@ import android.util.Log;
  * {@link #hashCode()} implementations defined in this class, and
  * will be removed in a future version.</p>
  * 
+ * <h3>Private fields</h3>
+ * 
+ * By default, private fields are ignored when mapping model classes.
+ * It is possible to force them to be mapped, however, using the
+ * {@link Column} annotation
+ * 
+ * <p><pre><code>
+ *   {@literal @}Column(forceMap = true)
+ *   private String myPrivateField;
+ * </pre></code></p>
+ * 
  * <h3>Relationships</h3>
  * 
  * <p>The framework currently provides built-in support for 
@@ -173,6 +184,8 @@ public abstract class Entity {
 
       ArrayList<String> seenFields = new ArrayList<String>();
       for (Field f : clz.getDeclaredFields()) {
+        f.setAccessible(true);
+      
         // Blithely ignore this field if we've already seen one with same name -
         // Java field hiding allows this to happen and if it does, without this
         // we'd be adding the same column name twice.
@@ -180,16 +193,20 @@ public abstract class Entity {
         // We might as well also ignore it here if it's inverse, since we'll
         // never want to access it via the mapping.
         //
-        // Also, ignore statics/finals (bug #4) 
-    	f.setAccessible(true);
+        // Also, ignore statics/finals (bug #4)
+        //
+        // We ignore private fields, *unless* they're annotated with
+        // the force attribute.
         Column colAnn = f.getAnnotation(Column.class);
         boolean inverse = colAnn != null && colAnn.inverse();
+        boolean force = colAnn != null && colAnn.forceMap();
 
         int modifiers = f.getModifiers();
         if (!Modifier.isStatic(modifiers) &&
             !Modifier.isFinal(modifiers) &&
+            (!Modifier.isPrivate(modifiers) || force) &&
             !seenFields.contains(f.getName()) && 
-            !inverse && !colAnn.ignore()) {
+            !inverse) {
           Column col = f.getAnnotation(Column.class);
           String name;
 
@@ -245,11 +262,7 @@ public abstract class Entity {
         b.append(" ");
         b.append(TypeMapper.sqlType(mFields.get(i).getType()));
         if (colName.equals(mPrimaryKeyColumnName)) {
-          b.append(" PRIMARY KEY");
-            Class<?> fieldClass = mFields.get(i).getClass();
-            if(fieldClass.equals(int.class) || fieldClass.equals(Integer.class)) {
-                b.append(" AUTOINCREMENT ");
-            }
+          b.append(" PRIMARY KEY AUTOINCREMENT");
         }
 
         if (i < len - 1) {
@@ -304,20 +317,16 @@ public abstract class Entity {
       ArrayList<String> names = mColumnNames;
       ArrayList<Field> fields = mFields;
       int len = names.size();
-      Class<?> pKeyClass = mPrimaryKey.getClass();
 
       for (int i = 0; i < len; i++) {
         Field f = fields.get(i);
         if (!isPrimaryKey(f)) {
           b.append(names.get(i));
-        } else {
-            if(!(pKeyClass.equals(int.class) || pKeyClass.equals(Integer.class))) {
-                b.append((names.get(i)));
-            }
-        }
-
-        if (i < len-1) {
+          
+          if (i < len-1) {
             b.append(",");
+          }
+
         }
       }
 
@@ -328,39 +337,30 @@ public abstract class Entity {
       StringBuilder b = new StringBuilder();
       ArrayList<Field> fields = mFields;
       int len = fields.size();
-      Class<?> pKeyClass = mPrimaryKey.getClass();
 
       for (int i = 0; i < len; i++) {
-        Object val;
         Field f = fields.get(i);
         if (!isPrimaryKey(f)) {
-          val = getFieldValue(f, receiver);
+          Object val;
+          try {
+            val = f.get(receiver);
+          } catch (IllegalAccessException e) {
+            // Should never happen...
+            Log.e(TAG,
+                "IllegalAccessException accessing field "
+                    + fields.get(i).getName() + "; Inserting NULL");
+            val = null;
+          }
+          
           b.append(val == null ? "null" : processValue(db, val));
-        } else {
-            if(!(pKeyClass.equals(int.class) || pKeyClass.equals(Integer.class))) {
-                val = getFieldValue(f, receiver);
-                b.append(val == null ? "null" : processValue(db, val));
-            }
-        }
 
-        if (i < len-1) {
+          if (i < len-1) {
             b.append(",");
+          }
         }
       }
 
       return b.toString();
-    }
-
-    private Object getFieldValue(Field f, Entity receiver) {
-        try {
-            return f.get(receiver);
-        } catch (IllegalAccessException e) {
-            // Should never happen...
-            Log.e(TAG,
-                    "IllegalAccessException accessing field "
-                            + f.getName() + "; Inserting NULL");
-            return null;
-        }
     }
 
     private String getSetFields(SQLiteDatabase db, Object receiver) {
@@ -406,26 +406,23 @@ public abstract class Entity {
     }
 
     int insert(SQLiteDatabase db, Entity o) {
-      String sql = "INSERT INTO " + mTableName + " (" + stripTrailingComma(getColNames())
-          + ") VALUES (" + stripTrailingComma(getFieldValues(db, o)) + ")";
+      String sql = "INSERT INTO " + mTableName + " ("
+          + stripTrailingComma(getColNames()) + ") VALUES ("
+          + stripTrailingComma(getFieldValues(db, o)) + ")";
 
       Log.v(getClass().getSimpleName(), sql);
 
       db.execSQL(sql);
 
-      Class<?> pKeyClass = mPrimaryKey.getClass();
-      if(pKeyClass.equals(int.class) || pKeyClass.equals(Integer.class)) {
-          Cursor c = db.rawQuery("select last_insert_rowid();", null);
-          if (c.moveToFirst()) {
-            Integer i = c.getInt(0);
-            setPrimaryKeyValue(o, i);
-            return i;
-          } else {
-            throw new ORMDroidException(
-                "Failed to get last inserted id after INSERT");
-          }
+      Cursor c = db.rawQuery("select last_insert_rowid();", null);
+      if (c.moveToFirst()) {
+        Integer i = c.getInt(0);
+        setPrimaryKeyValue(o, i);
+        return i;
+      } else {
+        throw new ORMDroidException(
+            "Failed to get last inserted id after INSERT");
       }
-      return -1;
     }
 
     void update(SQLiteDatabase db, Entity o) {
@@ -622,8 +619,6 @@ public abstract class Entity {
    * connection.
    * 
    * @return The primary key of the inserted item (if object was transient), or -1 if an update was performed.
-   * Unless the primary key is of non-integer type, in which case 0 will always be returned if the object is
-   * transient.
    */
   public int save() {
     SQLiteDatabase db = ORMDroidApplication.getDefaultDatabase();
