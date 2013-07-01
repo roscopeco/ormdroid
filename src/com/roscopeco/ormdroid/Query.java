@@ -70,17 +70,27 @@ public class Query<T extends Entity> {
   
   static class LogicalExpr implements SQLExpression {
     final String op;
-    final SQLExpression lhs, rhs;
+    final SQLExpression[] operands;
     
-    public LogicalExpr(String op, SQLExpression lhs, SQLExpression rhs) {
+    public LogicalExpr(String op, SQLExpression... operands) {
       this.op = op;
-      this.lhs = lhs;
-      this.rhs = rhs;
+      if (operands.length < 2) {
+        throw new IllegalArgumentException("Cannot create logical expression with < 2 operands");
+      }
+      this.operands = operands;
     }
 
     public String generate() {
       StringBuilder sb = new StringBuilder();
-      sb.append("(").append(lhs.generate()).append(" ").append(op).append(" ").append(rhs.generate()).append(")");      
+      
+      sb.append("(");
+      
+      for (int i = 0; i < operands.length - 1; i++) {
+        sb.append(operands[i].generate()).append(" ").append(op).append(" ");      
+      }
+      
+      sb.append(operands[operands.length - 1].generate()).append(")");
+      
       return sb.toString();
     }
   }
@@ -98,8 +108,9 @@ public class Query<T extends Entity> {
   }
   
   private final Class<T> mClass;
-  private final EntityMapping mEntityMapping; 
-  private String sqlCache, sqlCache1;
+  private final EntityMapping mEntityMapping;
+  private String customSql;
+  private String sqlCache, sqlCache1, whereCache;
   private SQLExpression whereExpr;
   private String[] orderByColumns;
   private int limit = -1;
@@ -136,22 +147,63 @@ public class Query<T extends Entity> {
     return new BinExpr(BinExpr.GEQ, column, TypeMapper.encodeValue(null, value));    
   }
   
-  public static SQLExpression and(SQLExpression lhs, SQLExpression rhs) {
-    return new LogicalExpr("AND", lhs, rhs);
+  public static SQLExpression and(SQLExpression... operands) {
+    return new LogicalExpr("AND", operands);
   }
   
-  public static SQLExpression or(SQLExpression lhs, SQLExpression rhs) {
-    return new LogicalExpr("OR", lhs, rhs);
+  public static SQLExpression or(SQLExpression... operands) {
+    return new LogicalExpr("OR", operands);
+  }
+  
+  /**
+   * Set this query to execute the given custom SQL. This SQL must have proper
+   * syntax, and will be appended after the "SELECT * FROM sometable " generated
+   * by the Query itself.
+   * 
+   * Note that when using this method, you will no longer be able to use the
+   * other methods to set query parameters (e.g. {@link #where(SQLExpression)}
+   * and {@link #limit(int)}).
+   */
+  public Query<T> sql(String sql) {
+    sqlCache = null;
+    sqlCache1 = null;
+    whereCache = null;
+    whereExpr = null;
+    orderByColumns = null;
+    limit = -1;
+    customSql = sql;
+    return this;
   }
   
   public Query<T> where(SQLExpression expr) {
+    if (customSql != null) {
+      throw new IllegalStateException("Cannot change query parameters on custom SQL Query");
+    }
+    
     sqlCache = null;
     sqlCache1 = null;
+    whereCache = null;
     whereExpr = expr;
     return this;    
   }
   
+  public Query<T> where(String sql) {
+    if (customSql != null) {
+      throw new IllegalStateException("Cannot change query parameters on custom SQL Query");
+    }
+    
+    sqlCache = null;
+    sqlCache1 = null;
+    whereCache = sql;
+    whereExpr = null;
+    return this;    
+  }
+  
   public Query<T> orderBy(String... columns) {
+    if (customSql != null) {
+      throw new IllegalStateException("Cannot change query parameters on custom SQL Query");
+    }
+    
     sqlCache = null;
     sqlCache1 = null;
     orderByColumns = columns;
@@ -159,6 +211,10 @@ public class Query<T extends Entity> {
   }
   
   public Query<T> limit(int limit) {
+    if (customSql != null) {
+      throw new IllegalStateException("Cannot change query parameters on custom SQL Query");
+    }
+    
     sqlCache = null;
     sqlCache1 = null;
     this.limit = limit;
@@ -166,9 +222,17 @@ public class Query<T extends Entity> {
   }
 
   private String generate(int limit) {
+    if (customSql != null) {
+      return customSql;
+    }
+    
     StringBuilder sb = new StringBuilder().append("SELECT * FROM ").append(mEntityMapping.mTableName);
-    if (whereExpr != null) {
-      sb.append(" WHERE ").append(whereExpr.generate());
+    if (whereCache != null) {
+      sb.append(" WHERE ").append(whereCache);      
+    } else {
+      if (whereExpr != null) {
+        sb.append(" WHERE ").append(whereCache = whereExpr.generate());
+      }
     }
     if (orderByColumns != null && orderByColumns.length > 0) {
       joinStrings(sb.append(" ORDER BY "), orderByColumns);
