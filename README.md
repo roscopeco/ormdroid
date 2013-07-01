@@ -46,19 +46,31 @@ public class Person extends Entity {
 And work with it as you see fit!
 
 ```java
-Person p = Entity.query(Person.class).where("id").eq("1").execute();
+Person p = Entity.query(Person.class).where("id=1").execute();
 p.telephone = "555-1234";
 p.save();
 ```
+
+There is also an object-oriented query API:
+
+```java
+import static com.roscopeco.ormdroid.Query.eql;
+
+// ... later
+
+Person person = Entity.query(Person.class).where(eql("id", id)).execute();
+p.telephone = "555-1234";
+p.save();
+```      
 
 That's it! If you want more customization over e.g. table names, column names, etc, take a look at the `Table` and `Column` annotations.
 
 There is a more detailed version of these instructions in [this blog entry](http://roscopeco.wordpress.com/2012/08/05/ormdroid-on-google-code/)
 
-*Update*: There is now a very simple sample app available for ORMDroid. You can get it from SVN:
+*Update*: There is now a very simple sample app available for ORMDroid. You can get it from Git:
 
 ```
-svn checkout http://orm-droid.googlecode.com/svn/trunk/ORMSample
+git clone https://github.com/roscopeco/ormdroid-example.git
 ```
 
 For more information, check out [this blog entry](http://roscopeco.com/2012/08/23/ormdroid-bugfixes-sample-app-happiness/).
