@@ -289,6 +289,19 @@ public class Query<T extends Entity> {
   }
   
   /**
+   * Executes the query against the default database, returning a high performance
+   * cursor instead of the complete in-memory list of objects.
+   */
+  public Cursor executeMultiForCursor() {
+    SQLiteDatabase db = ORMDroidApplication.getDefaultDatabase();
+    try {
+      return executeMultiForCursor(db);
+    } finally {
+      db.close();
+    }
+  }
+  
+  /**
    * Execute the query on the default database, returning all results.
    */
   public List<T> executeMulti() {
@@ -298,6 +311,16 @@ public class Query<T extends Entity> {
     } finally {
       db.close();
     }
+  }
+  
+  /**
+   * Executes the query against the specified database, returning a high performance
+   * cursor instead of the complete in-memory list of objects.
+   */
+  public Cursor executeMultiForCursor(SQLiteDatabase db) {
+    String sql = toSql();
+    Log.v(TAG, sql);
+    return db.rawQuery(sql, null);
   }
   
   /**
