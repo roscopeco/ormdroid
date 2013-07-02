@@ -174,7 +174,6 @@ public abstract class Entity {
     static EntityMapping build(Class<? extends Entity> clz) {
       EntityMapping mapping = new EntityMapping();
       mapping.mMappedClass = clz;
-
       Table table = clz.getAnnotation(Table.class);
       if (table != null) {
         mapping.mTableName = table.name();
@@ -207,6 +206,15 @@ public abstract class Entity {
             (!Modifier.isPrivate(modifiers) || force) &&
             !seenFields.contains(f.getName()) && 
             !inverse) {
+          
+          // Check we can map this type - if not, let's fail fast.
+          // This will save us wierd exceptions somewhere down the line...
+          if (TypeMapper.getMapping(f.getType()) == null) {
+            throw new TypeMappingException("Model " + 
+                                           clz.getName() + 
+                                           " has unmappable field: " + f);
+          }
+          
           Column col = f.getAnnotation(Column.class);
           String name;
 
@@ -466,12 +474,15 @@ public abstract class Entity {
         }
 
         return model;
-      } catch (Exception e) {
+      } catch (InstantiationException e) {
         throw new ORMDroidException(
             "Failed to instantiate model class - does it have a public null constructor?",
             e);
+      } catch (IllegalAccessException e) {
+        throw new ORMDroidException(
+            "Access denied. Is your model's constructor non-public?",
+            e);
       }
-
     }
 
     /*

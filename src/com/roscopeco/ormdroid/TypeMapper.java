@@ -22,8 +22,9 @@ import android.database.sqlite.SQLiteDatabase;
  * 
  * <p>By default, ORMDroid provides a mapping for all primitive types
  * and Entity classes. All other types are mapped by the <em>default 
- * mapping</em>, which simply stores their <code>toString</code> results
- * in a <code>VARCHAR</code> column.</p>
+ * mapping</em> (if configured with {@link #setDefaultMapping(TypeMapping)}). 
+ * By default, there is no default mapping - attempting to use a model class
+ * with a field of an unmapped type will throw an exception.</p>
  * 
  * <p>Custom types may be mapped by registering an instance of 
  * {@link TypeMapping} via the {@link #mapType(TypeMapping) mapType} method.
@@ -41,7 +42,7 @@ import android.database.sqlite.SQLiteDatabase;
  */
 public final class TypeMapper {
   private static final MappingList TYPEMAPS = new MappingList();
-  private static TypeMapping mDefaultMapping = new StringTypeMapping(Object.class, "VARCHAR");
+  private static TypeMapping mDefaultMapping = null;
   
   public static String sqlType(Class<?> type) {
     return getMapping(type).sqlType(type);
@@ -51,19 +52,14 @@ public final class TypeMapper {
    * Obtain the configured mapping the the specified Java type.
    * 
    * @param type the Java type. 
-   * @return the configured mapping.
+   * @return the configured mapping, or <code>null</code> if none.
    */
   public static TypeMapping getMapping(Class<?> type) {
     TypeMapping r = TYPEMAPS.findMapping(type);
     if (r != null) {
       return r;
     } else {
-      TypeMapping def = mDefaultMapping;
-      if (def != null) {
-        return def;
-      } else {
-        throw new TypeMappingException("No mapping found for type `" + type + "'");
-      }
+      return mDefaultMapping;
     }
   }
   
@@ -115,6 +111,7 @@ public final class TypeMapper {
     mapType(new NumericTypeMapping(boolean.class, "TINYINT"));
     mapType(new NumericTypeMapping(Long.class, "BIGINT"));
     mapType(new NumericTypeMapping(long.class, "BIGINT"));
+    mapType(new DateTypeMapping());
     mapType(new EntityTypeMapping());
     mapType(new NumericTypeMapping(Integer.class, "INTEGER"));
     mapType(new NumericTypeMapping(int.class, "INTEGER"));
