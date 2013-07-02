@@ -41,7 +41,7 @@ import com.roscopeco.ormdroid.Entity.EntityMapping;
 public class Query<T extends Entity> {
   private static final String TAG = "Query";
   
-  static interface SQLExpression {
+  public static interface SQLExpression {
     String generate();
   }
   
