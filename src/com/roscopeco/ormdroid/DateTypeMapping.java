@@ -48,6 +48,6 @@ public class DateTypeMapping implements TypeMapping {
   }
 
   public Object decodeValue(SQLiteDatabase db, Class<?> expectedType, Cursor c, int columnIndex) {
-    return new Date(c.getInt(columnIndex));
+    return new Date(c.getLong(columnIndex));
   }
 }
