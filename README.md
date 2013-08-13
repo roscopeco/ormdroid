@@ -74,3 +74,9 @@ git clone https://github.com/roscopeco/ormdroid-example.git
 ```
 
 For more information, check out [this blog entry](http://roscopeco.com/2012/08/23/ormdroid-bugfixes-sample-app-happiness/).
+
+Get in touch!
+-------------
+
+If you have questions, suggestions or just want to talk (about ORMDroid), get in touch via the [Google Group](https://groups.google.com/forum/#!forum/ormdroid-discuss).
+
