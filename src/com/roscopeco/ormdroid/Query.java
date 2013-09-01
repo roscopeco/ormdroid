@@ -221,12 +221,13 @@ public class Query<T extends Entity> {
     return this;
   }
 
-  private String generate(int limit) {
+  private String generate(int limit) {    
+    StringBuilder sb = new StringBuilder().append("SELECT * FROM ").append(mEntityMapping.mTableName);
+    
     if (customSql != null) {
-      return customSql;
+      return sb.append(" ").append(customSql).toString();
     }
     
-    StringBuilder sb = new StringBuilder().append("SELECT * FROM ").append(mEntityMapping.mTableName);
     if (whereCache != null) {
       sb.append(" WHERE ").append(whereCache);      
     } else {
