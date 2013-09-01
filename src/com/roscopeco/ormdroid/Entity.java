@@ -181,69 +181,81 @@ public abstract class Entity {
         mapping.mTableName = MATCH_DOTDOLLAR.matcher(clz.getName()).replaceAll("");
       }
 
-      ArrayList<String> seenFields = new ArrayList<String>();
-      for (Field f : clz.getDeclaredFields()) {
-        f.setAccessible(true);
+      // Use a raw Class var to spin through the hierarchy, to avoid
+      // type safety warnings which we know are not an issue.
+      @SuppressWarnings("rawtypes")
+      Class cClz = clz; 
       
-        // Blithely ignore this field if we've already seen one with same name -
-        // Java field hiding allows this to happen and if it does, without this
-        // we'd be adding the same column name twice.
-        //
-        // We might as well also ignore it here if it's inverse, since we'll
-        // never want to access it via the mapping.
-        //
-        // Also, ignore statics/finals (bug #4)
-        //
-        // We ignore private fields, *unless* they're annotated with
-        // the force attribute.
-        Column colAnn = f.getAnnotation(Column.class);
-        boolean inverse = colAnn != null && colAnn.inverse();
-        boolean force = colAnn != null && colAnn.forceMap();
-
-        int modifiers = f.getModifiers();
-        if (!Modifier.isStatic(modifiers) &&
-            !Modifier.isFinal(modifiers) &&
-            (!Modifier.isPrivate(modifiers) || force) &&
-            !seenFields.contains(f.getName()) && 
-            !inverse) {
-          
-          // Check we can map this type - if not, let's fail fast.
-          // This will save us wierd exceptions somewhere down the line...
-          if (TypeMapper.getMapping(f.getType()) == null) {
-            throw new TypeMappingException("Model " + 
-                                           clz.getName() + 
-                                           " has unmappable field: " + f);
-          }
-          
-          Column col = f.getAnnotation(Column.class);
-          String name;
-
-          if (col != null) {
-            // empty is default, means we should use field name...
-            if ("".equals(name = col.name())) {
+      ArrayList<String> seenFields = new ArrayList<String>();
+      
+      // Loop through the class hierarchy, picking up the fields we'll be 
+      // mapping as we go. 
+      while (!"com.roscopeco.ormdroid.Entity".equals(cClz.getName())) {
+        for (Field f : cClz.getDeclaredFields()) {
+          f.setAccessible(true);
+        
+          // Blithely ignore this field if we've already seen one with same name -
+          // Java field hiding allows this to happen and if it does, without this
+          // we'd be adding the same column name twice.
+          //
+          // We might as well also ignore it here if it's inverse, since we'll
+          // never want to access it via the mapping.
+          //
+          // Also, ignore statics/finals (bug #4)
+          //
+          // We ignore private fields, *unless* they're annotated with
+          // the force attribute.
+          Column colAnn = f.getAnnotation(Column.class);
+          boolean inverse = colAnn != null && colAnn.inverse();
+          boolean force = colAnn != null && colAnn.forceMap();
+  
+          int modifiers = f.getModifiers();
+          if (!Modifier.isStatic(modifiers) &&
+              !Modifier.isFinal(modifiers) &&
+              (!Modifier.isPrivate(modifiers) || force) &&
+              !seenFields.contains(f.getName()) && 
+              !inverse) {
+            
+            // Check we can map this type - if not, let's fail fast.
+            // This will save us wierd exceptions somewhere down the line...
+            if (TypeMapper.getMapping(f.getType()) == null) {
+              throw new TypeMappingException("Model " + 
+                                             cClz.getName() + 
+                                             " has unmappable field: " + f);
+            }
+            
+            Column col = f.getAnnotation(Column.class);
+            String name;
+  
+            if (col != null) {
+              // empty is default, means we should use field name...
+              if ("".equals(name = col.name())) {
+                name = f.getName();
+              }
+  
+              if (col.primaryKey()) {
+                mapping.mPrimaryKey = f;
+                mapping.mPrimaryKeyColumnName = name;
+              }
+            } else {
               name = f.getName();
             }
-
-            if (col.primaryKey()) {
-              mapping.mPrimaryKey = f;
-              mapping.mPrimaryKeyColumnName = name;
+  
+            // Try to default primary key if we don't have one yet...
+            if (mapping.mPrimaryKey == null) {
+              if ("_id".equals(name) || "id".equals(name)) {
+                mapping.mPrimaryKey = f;
+                mapping.mPrimaryKeyColumnName = name;
+              }
             }
-          } else {
-            name = f.getName();
+  
+            mapping.mFields.add(f);
+            mapping.mColumnNames.add(name);
+            seenFields.add(f.getName());
           }
-
-          // Try to default primary key if we don't have one yet...
-          if (mapping.mPrimaryKey == null) {
-            if ("_id".equals(name) || "id".equals(name)) {
-              mapping.mPrimaryKey = f;
-              mapping.mPrimaryKeyColumnName = name;
-            }
-          }
-
-          mapping.mFields.add(f);
-          mapping.mColumnNames.add(name);
-          seenFields.add(f.getName());
         }
+        
+        cClz = cClz.getSuperclass();
       }
 
       if (mapping.mPrimaryKey == null) {
