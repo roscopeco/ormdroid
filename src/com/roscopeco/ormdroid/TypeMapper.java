@@ -115,10 +115,6 @@ public final class TypeMapper {
     mapType(new EntityTypeMapping());
     mapType(new NumericTypeMapping(Integer.class, "INTEGER"));
     mapType(new NumericTypeMapping(int.class, "INTEGER"));
-
-    //    String is mapped, even though it would be handled by the default, 
-    //    so we don't have to traverse all the mappings before we decide
-    //    on the default handler.
     mapType(new StringTypeMapping(String.class, "VARCHAR"));
     
   }
