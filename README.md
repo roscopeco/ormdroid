@@ -12,7 +12,7 @@ ORMDroid works with Android API 8 and up.
 Getting ORMDroid
 ----------------
 
-You can either download ORMDroid from [the download page](http://code.google.com/p/orm-droid/downloads/list), or check out of Git.
+You can either download ORMDroid from [the download page](https://github.com/roscopeco/ormdroid/releases), or check out of Git.
 
 If downloading a packaged release, you'll need to unzip the file somewhere, and then import the project into your Eclipse. 
 
