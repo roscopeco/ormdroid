@@ -568,6 +568,62 @@ public abstract class Entity {
   public static <T extends Entity> Query<T> query(Class<T> clz) {
     return new Query<T>(clz);
   }
+  
+  /**
+   * Load the next entity from the given cursor using the default database.
+   * 
+   * If the cursor does not reference the default database, then you should
+   * instead use {@link #load(Class, SQLiteDatabase, Cursor)} to allow the
+   * database from which linked entities will be loaded.
+   * 
+   * @param clz The class of Entity the cursor holds.
+   * @param c The cursor.
+   * @return the loaded entity.
+   */
+  public static <T extends Entity> T load(Class<T> clz, Cursor c) {
+  	return load(clz, ORMDroidApplication.getDefaultDatabase(), c);
+  }
+  
+  /**
+   * Load the next entity from the given cursor using the specified database.
+   * 
+   * @param clz The class of Entity the cursor holds.
+   * @param db The database from which to load any linked entities.
+   * @param c The cursor.
+   * @return the loaded entity.
+   */
+  public static <T extends Entity> T load(Class<T> clz, SQLiteDatabase db, Cursor c) {
+  	// Go ahead and assume schema already exists, since we have a cursor...
+  	return getEntityMapping(clz).<T>load(db, c);
+  }
+
+  /**
+   * Load all entities from the given cursor using the default database.
+   * 
+   * If the cursor does not reference the default database, then you should
+   * instead use {@link #load(Class, SQLiteDatabase, Cursor)} to allow the
+   * database from which linked entities will be loaded.
+   * 
+   * @param clz The class of Entity the cursor holds.
+   * @param c The cursor.
+   * @return the loaded entities, in a List.
+   */
+  public static <T extends Entity> List<T> loadAll(Class<T> clz, Cursor c) {
+  	return loadAll(clz, ORMDroidApplication.getDefaultDatabase(), c);
+  }
+  
+  /**
+   * Load all entities from the given cursor using the specified database.
+   * 
+   * @param clz The class of Entity the cursor holds.
+   * @param db The database from which to load any linked entities.
+   * @param c The cursor.
+   * @return the loaded entities, in a List.
+   */
+  public static <T extends Entity> List<T> loadAll(Class<T> clz, SQLiteDatabase db, Cursor c) {
+  	// Go ahead and assume schema already exists, since we have a cursor...
+  	return getEntityMapping(clz).<T>loadAll(db, c);
+  }
 
   boolean mTransient;
   private EntityMapping mMappingCache;
