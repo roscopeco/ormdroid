@@ -435,13 +435,17 @@ public abstract class Entity {
       db.execSQL(sql);
 
       Cursor c = db.rawQuery("select last_insert_rowid();", null);
-      if (c.moveToFirst()) {
-        Integer i = c.getInt(0);
-        setPrimaryKeyValue(o, i);
-        return i;
-      } else {
-        throw new ORMDroidException(
-            "Failed to get last inserted id after INSERT");
+      try {
+	      if (c.moveToFirst()) {
+	        Integer i = c.getInt(0);
+	        setPrimaryKeyValue(o, i);
+	        return i;
+	      } else {
+	        throw new ORMDroidException(
+	            "Failed to get last inserted id after INSERT");
+	      }
+      } finally {
+      	c.close();
       }
     }
 

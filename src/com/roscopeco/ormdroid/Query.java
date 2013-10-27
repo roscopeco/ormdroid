@@ -282,10 +282,14 @@ public class Query<T extends Entity> {
     String sql = sqlCache1;
     Log.v(TAG, sql);
     Cursor c = db.rawQuery(sql, null);
-    if (c.moveToFirst()) {
-      return map.<T>load(db, c);
-    } else {
-      return null;
+    try {
+	    if (c.moveToFirst()) {
+	      return map.<T>load(db, c);
+	    } else {
+	      return null;
+	    }
+    } finally {
+    	c.close();
     }
   }
   
