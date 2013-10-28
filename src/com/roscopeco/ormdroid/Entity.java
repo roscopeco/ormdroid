@@ -545,6 +545,18 @@ public abstract class Entity {
 
     return mapping;
   }
+  
+  /*
+   * Flushes the schema creation cache, ensuring that all existing mapping's
+   * schemas will be recreated if they do not exist when they're next accessed.
+   * 
+   * See issue #17
+   */
+  static void flushSchemaCreationCache() {
+  	for (Class<? extends Entity> clz : entityMappings.keySet()) {
+  		entityMappings.get(clz).mSchemaCreated = false;
+  	}
+  }
 
   static EntityMapping getEntityMappingEnsureSchema(SQLiteDatabase db,
       Class<? extends Entity> clz) {

@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.util.Log;
 
 /**
@@ -127,6 +128,16 @@ public class ORMDroidApplication extends Application {
    * @return The database.
    */
   public SQLiteDatabase getDatabase() {
-    return openOrCreateDatabase(getDatabaseName(), 0, null);
-  }
+  	try {
+      return SQLiteDatabase.openDatabase(getDatabaseName(), null, SQLiteDatabase.OPEN_READWRITE);  		
+  	} catch (SQLiteException e) {
+  		// Couldn't open the database. It may never have existed, or it may have been
+  		// deleted while the app was running. If this is the case, entity mappings may still
+  		// be hanging around from that run, with their mSchemaCreated flag set to true. Since
+  		// this information is now stale, let's flush it (See issue #17).
+  		Entity.flushSchemaCreationCache();
+  		
+  		return openOrCreateDatabase(getDatabaseName(), 0, null);
+  	}
+  }  
 }
