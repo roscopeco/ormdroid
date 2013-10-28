@@ -332,8 +332,10 @@ public class Query<T extends Entity> {
    * Execute the query on the specified database, returning all results.
    */
   public List<T> executeMulti(SQLiteDatabase db) {
+    EntityMapping map = Entity.getEntityMappingEnsureSchema(db, mClass);
+
     String sql = toSql();
     Log.v(TAG, sql);
-    return Entity.getEntityMappingEnsureSchema(db, mClass).loadAll(db, db.rawQuery(sql, null));
+    return map.loadAll(db, db.rawQuery(sql, null));
   }
 }
