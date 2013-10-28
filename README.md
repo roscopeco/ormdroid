@@ -9,6 +9,8 @@ ORMDroid is:
 
 ORMDroid works with Android API 8 and up.
 
+ORMDroid is available under the Apache license 2.0. Copyright (c)2012-2013 Ross Bamford & Contributors.
+
 Getting ORMDroid
 ----------------
 
