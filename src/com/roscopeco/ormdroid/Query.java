@@ -15,13 +15,13 @@
  */
 package com.roscopeco.ormdroid;
 
-import java.util.List;
-
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 
 import com.roscopeco.ormdroid.Entity.EntityMapping;
+
+import java.util.List;
 
 /**
  * <p>Represents and assists with building a database query that 

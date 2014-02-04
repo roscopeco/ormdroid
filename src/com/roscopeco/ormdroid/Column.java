@@ -30,6 +30,6 @@ import java.lang.annotation.Target;
 public @interface Column {
   String name() default "";
   boolean primaryKey() default false;
-  boolean inverse() default false;
+  String inverse() default "";
   boolean forceMap() default false;
 }

@@ -15,10 +15,12 @@
  */
 package com.roscopeco.ormdroid;
 
-import java.util.Date;
-
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+import java.util.Date;
 
 /*
  * Map java.util.Date to the database.
@@ -32,7 +34,7 @@ public class DateTypeMapping implements TypeMapping {
   
   public DateTypeMapping() {
     mJavaType = Date.class;
-    mSqlType = "BIGINT";      
+    mSqlType = "BIGINT";
   }
 
   public Class<?> javaType() {
@@ -47,7 +49,7 @@ public class DateTypeMapping implements TypeMapping {
     return "\"" + ((Date)value).getTime() + "\"";
   }
 
-  public Object decodeValue(SQLiteDatabase db, Class<?> expectedType, Cursor c, int columnIndex) {
+  public Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<Entity> precursors) {
     return new Date(c.getLong(columnIndex));
   }
 }

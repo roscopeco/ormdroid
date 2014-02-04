@@ -111,6 +111,7 @@ public final class TypeMapper {
     mapType(new NumericTypeMapping(boolean.class, "TINYINT"));
     mapType(new NumericTypeMapping(Long.class, "BIGINT"));
     mapType(new NumericTypeMapping(long.class, "BIGINT"));
+    mapType(new ListTypeMapping());
     mapType(new DateTypeMapping());
     mapType(new EntityTypeMapping());
     mapType(new NumericTypeMapping(Integer.class, "INTEGER"));

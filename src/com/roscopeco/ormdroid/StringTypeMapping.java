@@ -19,6 +19,9 @@ import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+
 /**
  * <p>Simple {@link TypeMapping} that encodes it's values via the 
  * {@link java.lang.Object#toString()} method.</p>
@@ -50,7 +53,7 @@ public class StringTypeMapping implements TypeMapping {
     return DatabaseUtils.sqlEscapeString(value.toString());
   }
 
-  public Object decodeValue(SQLiteDatabase db, Class<?> expectedType, Cursor c, int columnIndex) {
+  public Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<Entity> precursors) {
     return c.getString(columnIndex);
   }
 }
