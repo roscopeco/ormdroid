@@ -95,13 +95,17 @@ public class Query<T extends Entity> {
     }
   }
 
-  private static StringBuilder joinStrings(StringBuilder sb, String... strings) {
+  private static StringBuilder joinStrings(StringBuilder sb, String mod, String... strings) {
     if (strings.length < 1) {
       return sb.append("*");      
     } else {
       sb.append(strings[0]);
+      if(mod != null)
+        sb.append(" ").append(mod);
       for (int i = 1; i < strings.length; i++) {
-        sb.append(", ").append(strings[i]);        
+        sb.append(", ").append(strings[i]);
+        if(mod != null)
+          sb.append(" ").append(mod);
       }
       return sb;
     }
@@ -113,6 +117,7 @@ public class Query<T extends Entity> {
   private String sqlCache, sqlCache1, whereCache;
   private SQLExpression whereExpr;
   private String[] orderByColumns;
+  private boolean orderByReversed;
   private int limit = -1;
   
   public Query(Class<T> clz) {    
@@ -198,8 +203,12 @@ public class Query<T extends Entity> {
     whereExpr = null;
     return this;    
   }
-  
+
   public Query<T> orderBy(String... columns) {
+      return orderBy(false, columns);
+  }
+  
+  public Query<T> orderBy(boolean reverse, String... columns) {
     if (customSql != null) {
       throw new IllegalStateException("Cannot change query parameters on custom SQL Query");
     }
@@ -207,6 +216,7 @@ public class Query<T extends Entity> {
     sqlCache = null;
     sqlCache1 = null;
     orderByColumns = columns;
+    orderByReversed = reverse;
     return this;
   }
   
@@ -236,7 +246,7 @@ public class Query<T extends Entity> {
       }
     }
     if (orderByColumns != null && orderByColumns.length > 0) {
-      joinStrings(sb.append(" ORDER BY "), orderByColumns);
+      joinStrings(sb.append(" ORDER BY "), orderByReversed ? "DESC" : "ASC", orderByColumns);
     }
     if (limit > -1) {
       sb.append(" LIMIT ").append(limit);

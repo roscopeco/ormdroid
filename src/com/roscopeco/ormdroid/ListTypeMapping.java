@@ -11,8 +11,6 @@ import java.util.List;
 
 public class ListTypeMapping implements TypeMapping {
   private static final String TAG = "ListTypeMapping";
-  //private Class<?> mElementJavaType;
-  //private String mInverseColumnName;
 
   public Class<?> javaType() {
     return List.class;
