@@ -100,6 +100,8 @@ public class ListTypeMapping implements TypeMapping {
         } while(valc.moveToNext());
       }
 
+      valc.close();
+
       return list;
 
     } else {
