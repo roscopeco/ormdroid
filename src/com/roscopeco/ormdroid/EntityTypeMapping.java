@@ -21,6 +21,9 @@ import android.util.Log;
 
 import com.roscopeco.ormdroid.Entity.EntityMapping;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+
 /**
  * Standard mapping for {@link Entity} subclasses. Automatically saves the
  * model if it's transient during encoding, when called from a 
@@ -63,21 +66,26 @@ public class EntityTypeMapping implements TypeMapping {
   //            * It's hardcoded for int primary keys
   //            * It's inefficient
   //            * It's generally a mess...
-  public Object decodeValue(SQLiteDatabase db, Class<?> expectedType, Cursor c, int columnIndex) {
-    if (Entity.class.isAssignableFrom(expectedType)) {
+  public Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<Entity> precursors) {
+    if (Entity.class.isAssignableFrom(field.getType())) {
       @SuppressWarnings("unchecked")
-      Class<? extends Entity> expEntityType = (Class<? extends Entity>)expectedType;
+      Class<? extends Entity> expEntityType = (Class<? extends Entity>)field.getType();
 
       // TODO could use Query here? Maybe Query could have a primaryKey() method to select by prikey?
       EntityMapping map = Entity.getEntityMappingEnsureSchema(db, expEntityType);
       String sql = "SELECT * FROM " + map.mTableName + " WHERE " + map.mPrimaryKeyColumnName + "=" + c.getInt(columnIndex) + " LIMIT 1";
       Log.v(TAG, sql);
       Cursor valc = db.rawQuery(sql, null);
-      if (valc.moveToFirst()) {
-        return map.load(db, valc);
-      } else {
-        return null;
-      }      
+      try {
+        if (valc.moveToFirst()) {
+          return map.load(db, valc, precursors);
+        } else {
+          return null;
+        }
+      }
+      finally {
+        valc.close();
+      }
     } else {
       throw new IllegalArgumentException("EntityTypeMapping can only be used with Entity subclasses");
     }

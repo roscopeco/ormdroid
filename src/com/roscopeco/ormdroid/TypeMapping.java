@@ -18,6 +18,9 @@ package com.roscopeco.ormdroid;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
+import java.lang.reflect.Field;
+import java.util.ArrayList;
+
 /**
  * A mapping between Java types and SQL data. Implementations
  * of this interface are registered with the {@link TypeMapper}
@@ -63,10 +66,10 @@ public interface TypeMapping {
    * <p>Decode the specified SQL data to a Java object.</p>
    *  
    * @param db The {@link SQLiteDatabase} to use, or <code>null</code>.
-   * @param expectedType The Java type the framework expects in return.
+   * @param field The field used to determine the Java type to return as well as inverse lookup names.
    * @param c The database cursor to read from.
    * @param columnIndex The column index containing the data.
    * @return An instance of <code>expectedType</code> representing the data.
    */
-  public Object decodeValue(SQLiteDatabase db, Class<?> expectedType, Cursor c, int columnIndex);
+  public Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<Entity> precursors);
 }

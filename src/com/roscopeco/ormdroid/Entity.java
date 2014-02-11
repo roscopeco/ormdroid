@@ -15,16 +15,16 @@
  */
 package com.roscopeco.ormdroid;
 
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
+
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.regex.Pattern;
-
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
 
 /**
  * <p>Base class for persistent entities. The only hard requirements
@@ -125,11 +125,10 @@ import android.util.Log;
  * for {@link java.util.List} and {@link java.util.Map}) will be added in a 
  * future version.</p>
  * 
- * <p>If you have a bidirectional relationship, you must annotate one side
- * of that relationship with the 
- * <code>{@literal @}{@link Column}(inverse = true)</code> annotation 
- * to prevent infinite loops when persisting your data. This will prevent
- * the inverse field from being persisted when it's model is stored.</p>
+ * <p>Using the
+ * <code>{@literal @}{@link Column}(inverse = "otherFieldName")</code>
+ * annotation will prevent the field from being persisted when its
+ * model is stored.</p>
  * 
  * <h3>Model lifecycle</h3>
  * 
@@ -166,7 +165,8 @@ public abstract class Entity {
     private Field mPrimaryKey;
     String mPrimaryKeyColumnName;
     private ArrayList<String> mColumnNames = new ArrayList<String>();
-    private ArrayList<Field> mFields = new ArrayList<Field>();
+      private ArrayList<Field> mFields = new ArrayList<Field>();
+      private ArrayList<Field> mInverseFields = new ArrayList<Field>();
     boolean mSchemaCreated = false;
 
     // Not concerned too much about reflective annotation access in this
@@ -206,52 +206,65 @@ public abstract class Entity {
           // We ignore private fields, *unless* they're annotated with
           // the force attribute.
           Column colAnn = f.getAnnotation(Column.class);
-          boolean inverse = colAnn != null && colAnn.inverse();
+          boolean inverse = colAnn != null && !colAnn.inverse().equals("");
           boolean force = colAnn != null && colAnn.forceMap();
   
           int modifiers = f.getModifiers();
           if (!Modifier.isStatic(modifiers) &&
               !Modifier.isFinal(modifiers) &&
               (!Modifier.isPrivate(modifiers) || force) &&
-              !seenFields.contains(f.getName()) && 
-              !inverse) {
-            
-            // Check we can map this type - if not, let's fail fast.
-            // This will save us wierd exceptions somewhere down the line...
-            if (TypeMapper.getMapping(f.getType()) == null) {
-              throw new TypeMappingException("Model " + 
-                                             cClz.getName() + 
-                                             " has unmappable field: " + f);
-            }
-            
-            Column col = f.getAnnotation(Column.class);
-            String name;
-  
-            if (col != null) {
-              // empty is default, means we should use field name...
-              if ("".equals(name = col.name())) {
+              !seenFields.contains(f.getName())) {
+
+            seenFields.add(f.getName());
+
+            if(!inverse) {
+
+              // Check we can map this type - if not, let's fail fast.
+              // This will save us weird exceptions somewhere down the line...
+              if (TypeMapper.getMapping(f.getType()) == null) {
+                throw new TypeMappingException("Model " +
+                                               cClz.getName() +
+                                               " has unmappable field: " + f);
+              }
+
+              // TODO basic type Lists ought to be okay here, but they are not implemented yet
+              if(List.class.isAssignableFrom(f.getType())) {
+                  throw new TypeMappingException("Model " +
+                          cClz.getName() +
+                          " field must be declared inverse: " + f);
+              }
+
+              Column col = f.getAnnotation(Column.class);
+              String name;
+
+              if (col != null) {
+                  // empty is default, means we should use field name...
+                  if ("".equals(name = col.name())) {
+                      name = f.getName();
+                  }
+
+                if (col.primaryKey()) {
+                  mapping.mPrimaryKey = f;
+                  mapping.mPrimaryKeyColumnName = name;
+                }
+              } else {
                 name = f.getName();
               }
-  
-              if (col.primaryKey()) {
-                mapping.mPrimaryKey = f;
-                mapping.mPrimaryKeyColumnName = name;
+
+              // Try to default primary key if we don't have one yet...
+              if (mapping.mPrimaryKey == null) {
+                if ("_id".equals(name) || "id".equals(name)) {
+                  mapping.mPrimaryKey = f;
+                  mapping.mPrimaryKeyColumnName = name;
+                }
               }
-            } else {
-              name = f.getName();
+
+              mapping.mColumnNames.add(name);
+              mapping.mFields.add(f);
             }
-  
-            // Try to default primary key if we don't have one yet...
-            if (mapping.mPrimaryKey == null) {
-              if ("_id".equals(name) || "id".equals(name)) {
-                mapping.mPrimaryKey = f;
-                mapping.mPrimaryKeyColumnName = name;
-              }
+            else {
+              mapping.mInverseFields.add(f);
             }
-  
-            mapping.mFields.add(f);
-            mapping.mColumnNames.add(name);
-            seenFields.add(f.getName());
           }
         }
         
@@ -271,7 +284,7 @@ public abstract class Entity {
 
     void createSchema(SQLiteDatabase db) {
       StringBuilder b = new StringBuilder();
-      b.append("CREATE TABLE IF NOT EXISTS " + mTableName + " (");
+      b.append("CREATE TABLE IF NOT EXISTS ").append(mTableName).append(" (");
 
       int len = mFields.size();
       for (int i = 0; i < len; i++) {
@@ -436,14 +449,13 @@ public abstract class Entity {
 
       Cursor c = db.rawQuery("select last_insert_rowid();", null);
       try {
-	      if (c.moveToFirst()) {
-	        Integer i = c.getInt(0);
-	        setPrimaryKeyValue(o, i);
-	        return i;
-	      } else {
-	        throw new ORMDroidException(
-	            "Failed to get last inserted id after INSERT");
-	      }
+	    if (c.moveToFirst()) {
+	      Integer i = c.getInt(0);
+          setPrimaryKeyValue(o, i);
+	      return i;
+	    } else {
+	      throw new ORMDroidException("Failed to get last inserted id after INSERT");
+	    }
       } finally {
       	c.close();
       }
@@ -463,6 +475,10 @@ public abstract class Entity {
      * Doesn't move the cursor - expects it to be positioned appropriately.
      */
     <T extends Entity> T load(SQLiteDatabase db, Cursor c) {
+        return load(db, c, null);
+    }
+
+    <T extends Entity> T load(SQLiteDatabase db, Cursor c, ArrayList<Entity> precursors) {
       try {
         // TODO we should be checking here that we've got data before
         // instantiating...
@@ -474,19 +490,67 @@ public abstract class Entity {
         ArrayList<Field> fields = mFields;
         int len = colNames.size();
 
+        int pkColIndex = c.getColumnIndex(mPrimaryKeyColumnName);
+
+        {
+          Field f = mPrimaryKey;
+          Class<?> ftype = f.getType();
+
+          if (pkColIndex == -1) {
+            Log.e("Internal<ModelMapping>", "Got -1 column index for `"+mPrimaryKeyColumnName+"' - Database schema may not match entity");
+            throw new ORMDroidException("Got -1 column index for `"+mPrimaryKeyColumnName+"' - Database schema may not match entity");
+          } else {
+            Object o = TypeMapper.getMapping(ftype).decodeValue(db, f, c, pkColIndex, precursors);
+            f.set(model, o);
+          }
+        }
+
+        if(precursors != null) {
+          int index = precursors.indexOf(model);
+
+          Log.d("ListTypeMapping", "found = " + index + " for " + precursors.size() + " precursor(s)");
+
+          if(index > -1) {
+            Entity precursor = precursors.get(index);
+
+            return (T) precursor;
+          }
+        }
+        else {
+          precursors = new ArrayList<Entity>();
+        }
+
+        precursors.add(model);
+
         for (int i = 0; i < len; i++) {
           Field f = fields.get(i);
           Class<?> ftype = f.getType();
           int colIndex = c.getColumnIndex(colNames.get(i));
-          
+
+          if(colIndex == pkColIndex)
+            continue;
+
           if (colIndex == -1) {
             Log.e("Internal<ModelMapping>", "Got -1 column index for `"+colNames.get(i)+"' - Database schema may not match entity");
             throw new ORMDroidException("Got -1 column index for `"+colNames.get(i)+"' - Database schema may not match entity");
           } else {
-            Object o = TypeMapper.getMapping(f.getType()).decodeValue(db, ftype,
-                c, colIndex);
+            Object o = TypeMapper.getMapping(ftype).decodeValue(db, f, c, colIndex, precursors);
             f.set(model, o);
           }
+        }
+
+        // Inverse fields are not loaded from database
+        // The Primary Key is supplied in place of the column index
+
+        len = mInverseFields.size();
+          fields = mInverseFields;
+
+        for(int i = 0; i < len; i++) {
+          Field f = fields.get(i);
+          Class<?> ftype = f.getType();
+
+          Object o = TypeMapper.getMapping(ftype).decodeValue(db, f, c, (Integer) model.getPrimaryKeyValue(), precursors);
+          f.set(model, o);
         }
 
         return model;
@@ -554,7 +618,7 @@ public abstract class Entity {
    */
   static void flushSchemaCreationCache() {
   	for (Class<? extends Entity> clz : entityMappings.keySet()) {
-  		entityMappings.get(clz).mSchemaCreated = false;
+      entityMappings.get(clz).mSchemaCreated = false;
   	}
   }
 
