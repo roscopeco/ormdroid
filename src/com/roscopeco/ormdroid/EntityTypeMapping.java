@@ -76,11 +76,16 @@ public class EntityTypeMapping implements TypeMapping {
       String sql = "SELECT * FROM " + map.mTableName + " WHERE " + map.mPrimaryKeyColumnName + "=" + c.getInt(columnIndex) + " LIMIT 1";
       Log.v(TAG, sql);
       Cursor valc = db.rawQuery(sql, null);
-      if (valc.moveToFirst()) {
-        return map.load(db, valc, precursors);
-      } else {
-        return null;
-      }      
+      try {
+        if (valc.moveToFirst()) {
+          return map.load(db, valc, precursors);
+        } else {
+          return null;
+        }
+      }
+      finally {
+        valc.close();
+      }
     } else {
       throw new IllegalArgumentException("EntityTypeMapping can only be used with Entity subclasses");
     }
