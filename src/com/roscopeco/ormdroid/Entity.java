@@ -478,7 +478,7 @@ public abstract class Entity {
         return load(db, c, null);
     }
 
-    <T extends Entity> T load(SQLiteDatabase db, Cursor c, ArrayList<Entity> precursors) {
+    <T extends Entity> T load(SQLiteDatabase db, Cursor c, ArrayList<T> precursors) {
       try {
         // TODO we should be checking here that we've got data before
         // instantiating...
@@ -511,13 +511,13 @@ public abstract class Entity {
           Log.d("ListTypeMapping", "found = " + index + " for " + precursors.size() + " precursor(s)");
 
           if(index > -1) {
-            Entity precursor = precursors.get(index);
+            T precursor = precursors.get(index);
 
-            return (T) precursor;
+            return precursor;
           }
         }
         else {
-          precursors = new ArrayList<Entity>();
+          precursors = new ArrayList<T>();
         }
 
         precursors.add(model);

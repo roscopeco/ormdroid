@@ -71,5 +71,5 @@ public interface TypeMapping {
    * @param columnIndex The column index containing the data.
    * @return An instance of <code>expectedType</code> representing the data.
    */
-  public Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<Entity> precursors);
+  public <T extends Entity> Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<T> precursors);
 }

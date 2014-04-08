@@ -66,7 +66,7 @@ public class EntityTypeMapping implements TypeMapping {
   //            * It's hardcoded for int primary keys
   //            * It's inefficient
   //            * It's generally a mess...
-  public Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<Entity> precursors) {
+  public <T extends Entity> Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<T> precursors) {
     if (Entity.class.isAssignableFrom(field.getType())) {
       @SuppressWarnings("unchecked")
       Class<? extends Entity> expEntityType = (Class<? extends Entity>)field.getType();

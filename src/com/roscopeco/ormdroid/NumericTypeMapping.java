@@ -54,7 +54,7 @@ public class NumericTypeMapping implements TypeMapping {
 
   // TODO this will cause exceptions when trying to unbox into smaller types...
   //        or worse, silently lose data... Look into this!
-  public Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<Entity> precursors) {
+  public <T extends Entity> Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<T> precursors) {
     Class<?> expectedType = field.getType();
 
     if (expectedType.equals(Boolean.class) || expectedType.equals(boolean.class)) {

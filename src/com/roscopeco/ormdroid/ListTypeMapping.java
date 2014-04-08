@@ -51,8 +51,16 @@ public class ListTypeMapping implements TypeMapping {
     return "<list>";
   }
 
+  /*
+   * TODO some thoughts for later...
+   * 
+   * * This is eager loading... Could lazy loading be implemented, perhaps with a custom List implementation?
+   * * * Obviously random access would limit the usefulness of this, but might prevent loading the entire graph...
+   * * * This would also push indeterminate load potentially onto the main thread at some later time...
+   *
+   */
   // TODO columnIndex == primaryKey for inverse fields... (+ many more dots...)
-  public Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<Entity> precursors) {
+  public <T extends Entity> Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<T> precursors) {
     Log.d(TAG, "decoding... " + field);
 
     Class<?> type = field.getType();
@@ -67,10 +75,10 @@ public class ListTypeMapping implements TypeMapping {
       // TODO could use Query here? Maybe Query could have a primaryKey() method to select by prikey?
       Entity.EntityMapping map = Entity.getEntityMappingEnsureSchema(db, expEntityType);
 
-      List list;
+      List<T> list;
 
       try {
-        list = (List) type.newInstance();
+        list = (List<T>) type.newInstance();
       }
       catch (IllegalAccessException e) {
         Log.e(TAG, "IllegalAccessExpression thrown");
@@ -94,6 +102,8 @@ public class ListTypeMapping implements TypeMapping {
       Log.v(TAG, sql);
       Cursor valc = db.rawQuery(sql, null);
 
+      // TODO if doing lazy loading, here could return custom list implementation, rather
+      // than populating the list...
       if (valc.moveToFirst()) {
         do {
           list.add(map.load(db, valc, precursors));

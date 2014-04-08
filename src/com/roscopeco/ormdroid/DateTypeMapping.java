@@ -49,7 +49,7 @@ public class DateTypeMapping implements TypeMapping {
     return "\"" + ((Date)value).getTime() + "\"";
   }
 
-  public Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<Entity> precursors) {
+  public <T extends Entity> Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<T> precursors) {
     return new Date(c.getLong(columnIndex));
   }
 }

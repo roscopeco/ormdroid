@@ -53,7 +53,7 @@ public class StringTypeMapping implements TypeMapping {
     return DatabaseUtils.sqlEscapeString(value.toString());
   }
 
-  public Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<Entity> precursors) {
+  public <T extends Entity> Object decodeValue(SQLiteDatabase db, Field field, Cursor c, int columnIndex, ArrayList<T> precursors) {
     return c.getString(columnIndex);
   }
 }
