@@ -190,7 +190,7 @@ public abstract class Entity {
       
       // Loop through the class hierarchy, picking up the fields we'll be 
       // mapping as we go. 
-      while (!"com.roscopeco.ormdroid.Entity".equals(cClz.getName())) {
+      while (!Entity.class.getName().equals(cClz.getName())) {
         for (Field f : cClz.getDeclaredFields()) {
           f.setAccessible(true);
         
