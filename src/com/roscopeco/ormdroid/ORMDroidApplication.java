@@ -39,7 +39,10 @@ public class ORMDroidApplication extends Application {
   private String mDBName;
 
   private static void initInstance(ORMDroidApplication app, Context ctx) {
-    app.attachBaseContext(app.mContext = ctx.getApplicationContext());
+    app.mContext = ctx.getApplicationContext();
+		if (app.getBaseContext() == null) {
+			app.attachBaseContext(app.mContext);
+		}
   }
   
   public static boolean isInitialized() {
@@ -97,8 +100,7 @@ public class ORMDroidApplication extends Application {
       throw new IllegalStateException("ORMDroidApplication already initialized!");
     }
     singleton = this;
-    mContext = getApplicationContext();
-    //initInstance(this, getApplicationContext());
+    initInstance(this, getApplicationContext());
   }
   
   private void initDatabaseConfig() {
@@ -129,7 +131,7 @@ public class ORMDroidApplication extends Application {
    */
   public SQLiteDatabase getDatabase() {
   	try {
-      return SQLiteDatabase.openDatabase(getDatabaseName(), null, SQLiteDatabase.OPEN_READWRITE);  		
+      return SQLiteDatabase.openDatabase(mContext.getDatabasePath(getDatabaseName()).getPath(), null, SQLiteDatabase.OPEN_READWRITE);
   	} catch (SQLiteException e) {
   		// Couldn't open the database. It may never have existed, or it may have been
   		// deleted while the app was running. If this is the case, entity mappings may still
