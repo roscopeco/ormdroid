@@ -139,7 +139,7 @@ public class ORMDroidApplication extends Application {
   		// this information is now stale, let's flush it (See issue #17).
   		Entity.flushSchemaCreationCache();
   		
-  		return openOrCreateDatabase(getDatabaseName(), 0, null);
+  		return this.openOrCreateDatabase(this.getDatabaseName(), BuildConfig.DEBUG ? Context.MODE_WORLD_READABLE : Context.MODE_PRIVATE, null);
   	}
   }  
 }
