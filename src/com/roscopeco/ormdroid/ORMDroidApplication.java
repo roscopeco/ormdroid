@@ -159,7 +159,7 @@ public class ORMDroidApplication extends Application {
   		// this information is now stale, let's flush it (See issue #17).
   		Entity.flushSchemaCreationCache();
   		
-  		return this.openOrCreateDatabase(this.getDatabaseName(), BuildConfig.DEBUG ? Context.MODE_WORLD_READABLE : this.mDBVisibility, null);
+  		return this.openOrCreateDatabase(this.getDatabaseName(), this.mDBVisibility, null);
   	}
   }  
 }
