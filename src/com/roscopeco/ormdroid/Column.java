@@ -32,4 +32,5 @@ public @interface Column {
   boolean primaryKey() default false;
   String inverse() default "";
   boolean forceMap() default false;
+  boolean index() default false;
 }
