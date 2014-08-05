@@ -232,7 +232,7 @@ public class Query<T extends Entity> {
   }
 
   private String generate(int limit) {    
-    StringBuilder sb = new StringBuilder().append("SELECT * FROM ").append(mEntityMapping.mTableName);
+    StringBuilder sb = new StringBuilder().append("SELECT ").append(mEntityMapping.mTableName).append(".* FROM ").append(mEntityMapping.mTableName);
     
     if (customSql != null) {
       return sb.append(" ").append(customSql).toString();
