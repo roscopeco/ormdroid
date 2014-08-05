@@ -27,6 +27,10 @@ To use ORMDroid, you need to set up ORMDroid as a required library in your andro
 <meta-data
   android:name="ormdroid.database.name"
   android:value="your_database_name" />
+
+<meta-data
+  android:name="ormdroid.database.visibility"
+  android:value="PRIVATE||WORLD_READABLE||WORLD_WRITEABLE" />
 ```
 
 And initialize the framework somewhere (e.g. Application.onCreate, or even in your activity's onCreate since there's no penalty for calling initialize multiple times):
