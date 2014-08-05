@@ -34,9 +34,15 @@ import android.util.Log;
  * to have this initialization handled automatically.</p>
  */
 public class ORMDroidApplication extends Application {
+  @SuppressWarnings("unused")
+  private static final String VISIBILITY_PRIVATE = "PRIVATE";
+  private static final String VISIBILITY_WORLD_READABLE = "WORLD_READABLE";
+  private static final String VISIBILITY_WORLD_WRITEABLE = "WORLD_WRITEABLE";
+	
   private static ORMDroidApplication singleton;  
   private Context mContext;
   private String mDBName;
+  private int mDBVisibility = Context.MODE_PRIVATE;
 
   private static void initInstance(ORMDroidApplication app, Context ctx) {
     app.mContext = ctx.getApplicationContext();
@@ -110,6 +116,20 @@ public class ORMDroidApplication extends Application {
     } catch (Exception e) {
       throw new ORMDroidException("ORMDroid database configuration not found; Did you set properties in your app manifest?", e);
     }
+    try {
+      ApplicationInfo ai = this.mContext.getPackageManager().getApplicationInfo(this.mContext.getPackageName(), PackageManager.GET_META_DATA);
+      String metaVisibility = ai.metaData.get("ormdroid.database.visibility").toString();
+      if (ORMDroidApplication.VISIBILITY_WORLD_WRITEABLE.equals(metaVisibility)) {
+        this.mDBVisibility = Context.MODE_WORLD_WRITEABLE;
+      }
+      else if (ORMDroidApplication.VISIBILITY_WORLD_READABLE.equals(metaVisibility)) {
+        this.mDBVisibility = Context.MODE_WORLD_READABLE;
+      }
+      else {
+        this.mDBVisibility = Context.MODE_PRIVATE;
+      }
+    }
+    catch (Exception e) {}
   }
   
   /**
@@ -139,7 +159,7 @@ public class ORMDroidApplication extends Application {
   		// this information is now stale, let's flush it (See issue #17).
   		Entity.flushSchemaCreationCache();
   		
-  		return openOrCreateDatabase(getDatabaseName(), 0, null);
+  		return this.openOrCreateDatabase(this.getDatabaseName(), this.mDBVisibility, null);
   	}
   }  
 }
