@@ -167,6 +167,7 @@ public abstract class Entity {
     private ArrayList<String> mColumnNames = new ArrayList<String>();
       private ArrayList<Field> mFields = new ArrayList<Field>();
       private ArrayList<Field> mInverseFields = new ArrayList<Field>();
+      private ArrayList<Field> mIndexFields = new ArrayList<Field>();
     boolean mSchemaCreated = false;
 
     // Not concerned too much about reflective annotation access in this
@@ -208,6 +209,7 @@ public abstract class Entity {
           Column colAnn = f.getAnnotation(Column.class);
           boolean inverse = colAnn != null && !colAnn.inverse().equals("");
           boolean force = colAnn != null && colAnn.forceMap();
+          boolean index = colAnn != null && colAnn.index();
   
           int modifiers = f.getModifiers();
           if (!Modifier.isStatic(modifiers) &&
@@ -216,6 +218,10 @@ public abstract class Entity {
               !seenFields.contains(f.getName())) {
 
             seenFields.add(f.getName());
+            
+            if (index) {
+            	mapping.mIndexFields.add(f);
+            }
 
             if(!inverse) {
 
@@ -308,6 +314,17 @@ public abstract class Entity {
       String sql = b.toString();
       Log.v(TAG, sql);
       db.execSQL(sql);
+      
+      for (int i = 0; i < len; i++) {
+    	  Field f = mFields.get(i);
+    	  if (mIndexFields.contains(f)) {
+    		  String colName = mColumnNames.get(i);
+    		  String sqlIndex = new StringBuilder().append("CREATE INDEX IF NOT EXISTS ").append(mTableName).append("_").append(colName).append("_index ON ").append(mTableName).append("(").append(colName).append(");").toString();
+    		  Log.v(TAG, sqlIndex);
+    	      db.execSQL(sqlIndex);
+    	  }
+      }
+      
       mSchemaCreated = true;
     }
 
