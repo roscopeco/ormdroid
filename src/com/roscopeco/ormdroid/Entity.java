@@ -824,6 +824,7 @@ public abstract class Entity {
 
     if (!mTransient) {
       mapping.delete(db, this);
+      this.mTransient = true;
     }
   }
   
